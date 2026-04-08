@@ -7,6 +7,7 @@ import {
 import { format, differenceInMinutes } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
+import { CalendarEvent } from '../types'
 import { tokens, categoryLabels, priorityLabels } from '../utils/design'
 
 export const EventDetailPanel: React.FC = () => {
@@ -54,15 +55,35 @@ export const EventDetailPanel: React.FC = () => {
                 {categoryLabels[event.category]}
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
-                {[Edit3, Bell, Copy].map((Icon, i) => (
-                  <motion.button
-                    key={i}
-                    whileHover={{ scale: 1.1 }}
-                    style={{ padding: 6, borderRadius: 7, border: 'none', background: 'transparent', color: tokens.colors.text.tertiary, cursor: 'pointer' }}
-                  >
-                    <Icon size={15} />
-                  </motion.button>
-                ))}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  onClick={() => dispatch({ type: 'OPEN_CREATE_MODAL', payload: { mode: 'event', editingEventId: event.id } })}
+                  style={{ padding: 6, borderRadius: 7, border: 'none', background: 'transparent', color: tokens.colors.text.tertiary, cursor: 'pointer' }}
+                  title="編集"
+                >
+                  <Edit3 size={15} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  onClick={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
+                  style={{ padding: 6, borderRadius: 7, border: 'none', background: 'transparent', color: tokens.colors.text.tertiary, cursor: 'pointer' }}
+                  title="リマインダー・通知"
+                >
+                  <Bell size={15} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  onClick={() => {
+                    const dup: CalendarEvent = { ...event, id: `evt-${Date.now()}`, title: `${event.title} (コピー)` }
+                    dup.start = new Date(dup.start)
+                    dup.end = new Date(dup.end)
+                    dispatch({ type: 'ADD_EVENT', payload: dup })
+                  }}
+                  style={{ padding: 6, borderRadius: 7, border: 'none', background: 'transparent', color: tokens.colors.text.tertiary, cursor: 'pointer' }}
+                  title="コピー"
+                >
+                  <Copy size={15} />
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   onClick={() => dispatch({ type: 'SELECT_EVENT', payload: null })}
@@ -258,13 +279,14 @@ export const EventDetailPanel: React.FC = () => {
           }}>
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={() => dispatch({ type: 'OPEN_CREATE_MODAL', payload: { mode: 'wbs', preselectedEventId: event.id } })}
               style={{
                 padding: '10px', borderRadius: 12,
                 background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
                 border: 'none', color: '#fff', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: '0 4px 14px rgba(59,130,246,0.4)',
+                boxShadow: tokens.shadow.md,
               }}
             >
               <Zap size={15} />
@@ -273,6 +295,7 @@ export const EventDetailPanel: React.FC = () => {
             <div style={{ display: 'flex', gap: 8 }}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
+                onClick={() => dispatch({ type: 'OPEN_CREATE_MODAL', payload: { mode: 'event', editingEventId: event.id } })}
                 style={{
                   flex: 1, padding: '9px', borderRadius: 10,
                   border: `1px solid ${tokens.colors.border.default}`,
@@ -286,11 +309,14 @@ export const EventDetailPanel: React.FC = () => {
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
-                onClick={() => dispatch({ type: 'SELECT_EVENT', payload: null })}
+                onClick={() => {
+                  dispatch({ type: 'REMOVE_EVENT', payload: event.id })
+                  dispatch({ type: 'SELECT_EVENT', payload: null })
+                }}
                 style={{
                   flex: 1, padding: '9px', borderRadius: 10,
                   border: `1px solid rgba(239,68,68,0.3)`,
-                  background: 'rgba(239,68,68,0.1)', color: '#EF4444',
+                  background: 'rgba(217,48,37,0.1)', color: tokens.colors.accent.red,
                   cursor: 'pointer', fontSize: 12, fontWeight: 500,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}

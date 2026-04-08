@@ -13,11 +13,11 @@ import { tokens } from '../utils/design'
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日']
 
-const EventPill: React.FC<{ event: CalendarEvent; compact?: boolean; onClick?: () => void }> = ({ event, compact, onClick }) => (
+const EventPill: React.FC<{ event: CalendarEvent; compact?: boolean; onClick?: (e?: React.MouseEvent) => void }> = ({ event, compact, onClick }) => (
   <motion.div
     whileHover={{ scale: 1.02, y: -1 }}
     whileTap={{ scale: 0.98 }}
-    onClick={onClick}
+    onClick={(e) => { e.stopPropagation(); onClick?.(e) }}
     style={{
       background: `${event.color}20`,
       border: `1px solid ${event.color}40`,
@@ -86,11 +86,15 @@ export const MonthView: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: idx * 0.005 }}
+              onClick={() => dispatch({
+                type: 'OPEN_CREATE_MODAL',
+                payload: { mode: 'event', initialDateTime: { date: format(day, 'yyyy-MM-dd'), start: '10:00', end: '11:00' } },
+              })}
               style={{
                 borderRight: `1px solid ${tokens.colors.border.subtle}`,
                 borderBottom: `1px solid ${tokens.colors.border.subtle}`,
                 padding: '6px',
-                background: isTodayDay ? 'rgba(59,130,246,0.05)' : 'transparent',
+                background: isTodayDay ? 'rgba(26,115,232,0.08)' : 'transparent',
                 cursor: 'pointer',
                 transition: 'background 0.15s',
                 display: 'flex',
@@ -99,7 +103,7 @@ export const MonthView: React.FC = () => {
                 minHeight: 0,
                 overflow: 'hidden',
               }}
-              whileHover={{ background: 'rgba(255,255,255,0.03)' }}
+              whileHover={{ background: 'rgba(0,0,0,0.04)' }}
             >
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 2 }}>
                 <div style={{
@@ -117,6 +121,7 @@ export const MonthView: React.FC = () => {
                       ? tokens.colors.text.primary
                       : tokens.colors.text.tertiary,
                   background: isTodayDay ? tokens.colors.accent.blue : 'transparent',
+                  boxShadow: isTodayDay ? tokens.shadow.sm : 'none',
                 }}>
                   {format(day, 'd')}
                 </div>
@@ -240,15 +245,41 @@ export const WeekView: React.FC = () => {
             <div key={day.toISOString()} style={{
               borderRight: `1px solid ${tokens.colors.border.subtle}`,
               position: 'relative',
-              background: isToday(day) ? 'rgba(59,130,246,0.03)' : 'transparent',
+              background: isToday(day) ? 'rgba(26,115,232,0.06)' : 'transparent',
             }}>
+              {/* Clickable hour slots (empty area -> add event) */}
+              {HOURS.map(hour => (
+                <div
+                  key={hour}
+                  onClick={() => dispatch({
+                    type: 'OPEN_CREATE_MODAL',
+                    payload: {
+                      mode: 'event',
+                      initialDateTime: {
+                        date: format(day, 'yyyy-MM-dd'),
+                        start: `${hour.toString().padStart(2, '0')}:00`,
+                        end: `${Math.min(hour + 1, 23).toString().padStart(2, '0')}:00`,
+                      },
+                    },
+                  })}
+                  style={{
+                    position: 'absolute',
+                    top: hour * HOUR_HEIGHT,
+                    left: 0,
+                    right: 0,
+                    height: HOUR_HEIGHT,
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
               {/* Hour lines */}
               {HOURS.map(hour => (
-                <div key={hour} style={{
+                <div key={`line-${hour}`} style={{
                   position: 'absolute',
                   top: hour * HOUR_HEIGHT,
                   left: 0, right: 0,
                   borderTop: `1px solid ${tokens.colors.border.subtle}`,
+                  pointerEvents: 'none',
                 }} />
               ))}
 
@@ -259,7 +290,7 @@ export const WeekView: React.FC = () => {
                   top: nowTop,
                   left: -1, right: 0,
                   height: 2,
-                  background: '#EF4444',
+                  background: tokens.colors.accent.red,
                   zIndex: 10,
                 }}>
                   <div style={{
@@ -269,7 +300,7 @@ export const WeekView: React.FC = () => {
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
-                    background: '#EF4444',
+                    background: tokens.colors.accent.red,
                   }} />
                 </div>
               )}
@@ -351,14 +382,39 @@ export const DayView: React.FC = () => {
           </div>
           <div style={{ position: 'relative' }}>
             {HOURS.map(hour => (
-              <div key={hour} style={{
+              <div
+                key={hour}
+                onClick={() => dispatch({
+                  type: 'OPEN_CREATE_MODAL',
+                  payload: {
+                    mode: 'event',
+                    initialDateTime: {
+                      date: format(state.currentDate, 'yyyy-MM-dd'),
+                      start: `${hour.toString().padStart(2, '0')}:00`,
+                      end: `${Math.min(hour + 1, 23).toString().padStart(2, '0')}:00`,
+                    },
+                  },
+                })}
+                style={{
+                  position: 'absolute',
+                  top: hour * HOUR_HEIGHT,
+                  left: 0,
+                  right: 0,
+                  height: HOUR_HEIGHT,
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
+            {HOURS.map(hour => (
+              <div key={`line-${hour}`} style={{
                 position: 'absolute', top: hour * HOUR_HEIGHT, left: 0, right: 0,
                 borderTop: `1px solid ${tokens.colors.border.subtle}`,
+                pointerEvents: 'none',
               }} />
             ))}
             {isToday(state.currentDate) && (
-              <div style={{ position: 'absolute', top: nowTop, left: 0, right: 0, height: 2, background: '#EF4444', zIndex: 10 }}>
-                <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
+              <div style={{ position: 'absolute', top: nowTop, left: 0, right: 0, height: 2, background: tokens.colors.accent.red, zIndex: 10 }}>
+                <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: tokens.colors.accent.red }} />
               </div>
             )}
             {dayEvents.map(event => {
@@ -401,6 +457,28 @@ export const AgendaView: React.FC = () => {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }} className="custom-scrollbar">
       <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => dispatch({ type: 'OPEN_CREATE_MODAL', payload: { mode: 'event' } })}
+          style={{
+            padding: '14px 18px',
+            borderRadius: 12,
+            border: `2px dashed ${tokens.colors.border.default}`,
+            background: 'transparent',
+            color: tokens.colors.text.tertiary,
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>+</span>
+          予定を追加
+        </motion.button>
         {upcoming.map((event, idx) => (
           <motion.div
             key={event.id}

@@ -23,6 +23,8 @@ export const Sidebar: React.FC = () => {
     setActiveNav(id)
     if (id === 'calendar') dispatch({ type: 'SET_PANEL', payload: 'calendar' })
     else if (id === 'wbs') dispatch({ type: 'SET_PANEL', payload: 'wbs' })
+    else if (id === 'analytics') dispatch({ type: 'SET_PANEL', payload: 'analytics' })
+    else if (id === 'team') dispatch({ type: 'SET_PANEL', payload: 'team' })
     else dispatch({ type: 'SET_PANEL', payload: 'both' })
   }
 
@@ -61,7 +63,7 @@ export const Sidebar: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          boxShadow: '0 4px 12px rgba(59,130,246,0.4)',
+          boxShadow: tokens.shadow.md,
         }}>
           <Zap size={18} color="#fff" fill="#fff" />
         </div>
@@ -85,6 +87,7 @@ export const Sidebar: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          onClick={() => dispatch({ type: 'OPEN_CREATE_MODAL' })}
           style={{
             width: '100%',
             padding: state.sidebarOpen ? '9px 14px' : '9px',
@@ -99,7 +102,7 @@ export const Sidebar: React.FC = () => {
             gap: 8,
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
+            boxShadow: tokens.shadow.sm,
           }}
         >
           <Plus size={16} />
@@ -123,7 +126,7 @@ export const Sidebar: React.FC = () => {
                 borderRadius: 10,
                 border: 'none',
                 background: isActive
-                  ? 'rgba(59,130,246,0.15)'
+                  ? 'rgba(26,115,232,0.12)'
                   : 'transparent',
                 color: isActive ? tokens.colors.accent.blue : tokens.colors.text.secondary,
                 cursor: 'pointer',
@@ -178,7 +181,7 @@ export const Sidebar: React.FC = () => {
                   padding: '8px 10px',
                   borderRadius: 8,
                   border: 'none',
-                  background: state.selectedProjectId === proj.id ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  background: state.selectedProjectId === proj.id ? 'rgba(0,0,0,0.06)' : 'transparent',
                   color: tokens.colors.text.secondary,
                   cursor: 'pointer',
                   display: 'flex',
@@ -194,7 +197,7 @@ export const Sidebar: React.FC = () => {
                   marginLeft: 'auto',
                   fontSize: 11,
                   color: tokens.colors.text.tertiary,
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'rgba(0,0,0,0.06)',
                   padding: '2px 6px',
                   borderRadius: 4,
                 }}>{proj.progress}%</span>
@@ -213,12 +216,13 @@ export const Sidebar: React.FC = () => {
         gap: 2,
       }}>
         {[
-          { icon: Bell, label: '通知', badge: 3 },
-          { icon: Settings, label: '設定' },
-        ].map(({ icon: Icon, label, badge }) => (
+          { icon: Bell, label: '通知', badge: 3, action: 'OPEN_NOTIFICATIONS' as const },
+          { icon: Settings, label: '設定', action: 'OPEN_SETTINGS' as const },
+        ].map(({ icon: Icon, label, badge = 0, action }) => (
           <motion.button
             key={label}
             whileHover={{ x: 2 }}
+            onClick={() => dispatch({ type: action })}
             style={{
               padding: '10px 12px',
               borderRadius: 10,
@@ -244,7 +248,7 @@ export const Sidebar: React.FC = () => {
                   width: 14,
                   height: 14,
                   borderRadius: '50%',
-                  background: '#EF4444',
+                  background: tokens.colors.accent.red,
                   fontSize: 9,
                   color: '#fff',
                   display: 'flex',

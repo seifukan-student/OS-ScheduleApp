@@ -15,7 +15,7 @@ const CircularProgress: React.FC<{ value: number; color: string; size?: number }
 
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={5} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={5} />
       <motion.circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none" stroke={color} strokeWidth={5}
@@ -95,7 +95,7 @@ export const DashboardStrip: React.FC = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: idx * 0.06 }}
-          whileHover={{ background: 'rgba(255,255,255,0.03)' }}
+          whileHover={{ background: tokens.colors.bg.cardHover }}
           style={{
             padding: '14px 18px',
             background: tokens.colors.bg.secondary,

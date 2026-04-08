@@ -6,54 +6,15 @@ import {
   Bot, User, Clock
 } from 'lucide-react'
 import { format } from 'date-fns'
-import ReactMarkdown from 'react-markdown'
 import { useAppState } from '../store/AppContext'
 import { ChatMessage, ChatAction } from '../types'
-import { tokens, glassStyle } from '../utils/design'
+import { tokens } from '../utils/design'
+import { getGeminiApiKey, isGeminiConfigured } from '../utils/aiConfig'
+import { buildCalendarContextForAi } from '../utils/buildAiContext'
+import { getDemoAIResponse } from '../utils/demoAiResponses'
+import { geminiChat, chatMessagesToGeminiContents } from '../services/geminiClient'
 
-const AI_RESPONSES = [
-  {
-    trigger: ['今日', 'today', 'スケジュール'],
-    response: '今日のスケジュールを確認しました 📅\n\n**本日の重要なイベント:**\n- 🔴 14:00 UI/UXレビュー（2時間）\n- 🟡 17:00 ウィークリーリトリート（1時間）\n\n**タスク進捗:**\n- フロントエンド実装: **65%** 完了 ✨\n- バックエンドAPI: **40%** 進行中\n\n今週中に完了すべき優先タスクはありますか？',
-  },
-  {
-    trigger: ['WBS', 'wbs', '自動生成', 'タスク'],
-    response: '**WBSを自動生成します** ⚡\n\n選択したイベントから以下のタスク構造を提案します：\n\n```\n📁 プロダクトローンチ\n├── 📋 要件定義 (2日)\n│   ├── ステークホルダーインタビュー\n│   └── 仕様書作成\n├── 🎨 デザイン (3日)\n│   ├── ワイヤーフレーム\n│   └── プロトタイプ\n├── 💻 開発 (7日)\n│   ├── フロントエンド\n│   └── バックエンド\n└── 🚀 ローンチ (1日)\n```\n\nこのWBSをプロジェクトに追加しますか？',
-    actions: [
-      { id: 'gen-wbs-1', label: 'WBSを追加する', type: 'create_wbs' as const },
-      { id: 'gen-wbs-2', label: 'カスタマイズ', type: 'navigate' as const },
-    ],
-  },
-  {
-    trigger: ['最適化', 'optimize', '調整', '提案'],
-    response: '**スケジュール最適化の提案** 🧠\n\nAI分析により以下の改善点を発見しました：\n\n1. **集中ブロック確保** — 火曜と木曜の9-12時をDeep Workとして確保することを推奨します\n\n2. **バッファ時間** — 重要ミーティング前後に30分のバッファを設定すると生産性が向上します\n\n3. **タスクバッチング** — コードレビューは週2回（月・木）にまとめると効率的です\n\n最適化を適用しますか？',
-    actions: [
-      { id: 'opt-1', label: '最適化を適用', type: 'create_event' as const },
-    ],
-  },
-  {
-    trigger: ['リマインダー', 'remind', '通知'],
-    response: '**スマートリマインダーを設定します** 🔔\n\n優先度に基づいて以下のリマインダーを提案します：\n\n- **15分前**: Product Launch Planning\n- **1時間前**: Investor Meeting\n- **前日18:00**: 週次レポート提出\n\nまた、タスクの期限が近づいている場合は自動的にお知らせします。設定を確認しますか？',
-  },
-  {
-    trigger: ['分析', 'analysis', 'レポート', '生産性'],
-    response: '**今週の生産性分析** 📊\n\n```\n集中時間:  ████████░░  78%  ↑12%\nタスク完了: ██████░░░░  62%  →\nミーティング: ████░░░░░░  38%  ↓5%\n```\n\n**インサイト:**\n- Deep Workセッションを増やすと生産性が上がります\n- ミーティング時間が適切に管理されています\n- タスクの完了率を上げるため、小さく分割することを推奨します',
-  },
-]
-
-const getAIResponse = (input: string): { response: string; actions?: ChatAction[] } => {
-  const lower = input.toLowerCase()
-  for (const r of AI_RESPONSES) {
-    if (r.trigger.some(t => lower.includes(t))) {
-      return { response: r.response, actions: r.actions }
-    }
-  }
-  return {
-    response: `**「${input}」について確認しました** ✨\n\n以下の対応が可能です：\n\n- 📅 関連イベントをカレンダーに追加\n- ✅ WBSタスクを自動生成\n- 🔔 リマインダーを設定\n- 📊 スケジュールを最適化\n\n具体的に何かお手伝いできることはありますか？`,
-  }
-}
-
-const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
+const MessageBubble: React.FC<{ msg: ChatMessage; onAction?: (action: ChatAction) => void }> = ({ msg, onAction }) => {
   const isUser = msg.role === 'user'
   return (
     <motion.div
@@ -80,7 +41,7 @@ const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: isUser ? '0 4px 10px rgba(139,92,246,0.3)' : '0 4px 10px rgba(59,130,246,0.3)',
+        boxShadow: tokens.shadow.sm,
       }}>
         {isUser ? <User size={14} color="#fff" /> : <Zap size={14} color="#fff" fill="#fff" />}
       </div>
@@ -139,6 +100,7 @@ const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
                 key={action.id}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
+                onClick={() => onAction?.(action)}
                 style={{
                   padding: '5px 12px',
                   borderRadius: 8,
@@ -180,11 +142,35 @@ export const AIChat: React.FC = () => {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [minimized, setMinimized] = useState(false)
+  const [aiLive, setAiLive] = useState(() => isGeminiConfigured())
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const onStorage = () => setAiLive(isGeminiConfigured())
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('lumina-api-key', onStorage as EventListener)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('lumina-api-key', onStorage as EventListener)
+    }
+  }, [])
+
+  const handleChatAction = (action: ChatAction) => {
+    if (action.type === 'navigate' && action.payload?.view) {
+      dispatch({ type: 'SET_VIEW', payload: action.payload.view as 'month' | 'week' | 'day' | 'agenda' })
+    }
+    if (action.type === 'create_wbs') {
+      dispatch({ type: 'OPEN_CREATE_MODAL', payload: { mode: 'wbs' } })
+      dispatch({ type: 'SET_PANEL', payload: 'both' })
+    }
+    if (action.type === 'create_event') {
+      dispatch({ type: 'OPEN_CREATE_MODAL', payload: { mode: 'event' } })
+    }
+  }
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [state.chatMessages])
+  }, [state.chatMessages, isTyping])
 
   const sendMessage = async (text?: string) => {
     const content = text || input.trim()
@@ -199,32 +185,65 @@ export const AIChat: React.FC = () => {
     }
     dispatch({ type: 'ADD_MESSAGE', payload: userMsg })
 
-    // Typing indicator
-    const typingMsg: ChatMessage = {
-      id: `typing-${Date.now()}`,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      typing: true,
-    }
     setIsTyping(true)
-    dispatch({ type: 'ADD_MESSAGE', payload: typingMsg })
+    const apiKey = getGeminiApiKey()
+    setAiLive(!!apiKey)
 
-    await new Promise(r => setTimeout(r, 1200 + Math.random() * 800))
+    try {
+      let response: string
+      let actions: ChatAction[] | undefined
 
-    // Remove typing and add real response
-    const { response, actions } = getAIResponse(content)
-    const aiMsg: ChatMessage = {
-      id: `msg-${Date.now()}-ai`,
-      role: 'assistant',
-      content: response,
-      timestamp: new Date(),
-      actions,
+      if (apiKey) {
+        const calendarBlock = buildCalendarContextForAi(state.events, state.projects)
+        const systemInstruction = [
+          'あなたは Lumina（カレンダー兼WBS）の日本語アシスタントです。',
+          'ユーザーの予定・タスクを尊重し、実践的な提案を短めに返答してください。マークダウン（見出し・箇条書き）を使ってよいです。',
+          'キーやパスワードの要求はしません。',
+          '',
+          calendarBlock,
+        ].join('\n')
+
+        const prior = chatMessagesToGeminiContents(
+          [...state.chatMessages, userMsg].filter(
+            m => (m.role === 'user' || m.role === 'assistant') && !m.typing && m.content.trim()
+          )
+        )
+        response = await geminiChat({
+          apiKey,
+          systemInstruction,
+          contents: prior,
+        })
+      } else {
+        await new Promise(r => setTimeout(r, 350))
+        const demo = getDemoAIResponse(content, state.events, state.projects)
+        response = demo.response
+        actions = demo.actions
+      }
+
+      const aiMsg: ChatMessage = {
+        id: `msg-${Date.now()}-ai`,
+        role: 'assistant',
+        content: response,
+        timestamp: new Date(),
+        actions,
+      }
+      dispatch({ type: 'ADD_MESSAGE', payload: aiMsg })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'エラーが発生しました'
+      const demo = getDemoAIResponse(content, state.events, state.projects)
+      dispatch({
+        type: 'ADD_MESSAGE',
+        payload: {
+          id: `msg-${Date.now()}-err`,
+          role: 'assistant',
+          content: `**Gemini 応答エラー**\n\n${msg}\n\nAPIキーやネットワークを確認してください。とりあえずデモ応答を表示します。\n\n---\n\n${demo.response}`,
+          timestamp: new Date(),
+          actions: demo.actions,
+        },
+      })
+    } finally {
+      setIsTyping(false)
     }
-
-    // Replace the last message (typing indicator) with real response
-    dispatch({ type: 'ADD_MESSAGE', payload: aiMsg })
-    setIsTyping(false)
   }
 
   if (!state.chatOpen) return null
@@ -245,7 +264,7 @@ export const AIChat: React.FC = () => {
           borderRadius: 20,
           background: tokens.colors.bg.secondary,
           border: `1px solid ${tokens.colors.border.default}`,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
+          boxShadow: tokens.shadow.lg,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -260,22 +279,22 @@ export const AIChat: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(99,102,241,0.1))',
+          background: 'rgba(26,115,232,0.06)',
           flexShrink: 0,
         }}>
           <div style={{
             width: 32, height: 32, borderRadius: 10,
             background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(59,130,246,0.4)',
+            boxShadow: tokens.shadow.sm,
           }}>
             <Zap size={16} color="#fff" fill="#fff" />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: tokens.colors.text.primary }}>Lumina AI</div>
-            <div style={{ fontSize: 11, color: tokens.colors.accent.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: tokens.colors.accent.green }} />
-              オンライン
+            <div style={{ fontSize: 11, color: aiLive ? tokens.colors.accent.green : tokens.colors.text.tertiary, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: aiLive ? tokens.colors.accent.green : tokens.colors.text.tertiary }} />
+              {aiLive ? 'Gemini 接続' : 'デモモード'}
             </div>
           </div>
           <motion.button
@@ -312,8 +331,8 @@ export const AIChat: React.FC = () => {
                   style={{
                     padding: '16px',
                     borderRadius: 14,
-                    background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(99,102,241,0.1))',
-                    border: `1px solid rgba(59,130,246,0.2)`,
+                    background: 'rgba(26,115,232,0.06)',
+                    border: `1px solid ${tokens.colors.border.default}`,
                     marginBottom: 16,
                     textAlign: 'center',
                   }}
@@ -323,16 +342,25 @@ export const AIChat: React.FC = () => {
                     Lumina AIへようこそ
                   </div>
                   <div style={{ fontSize: 12, color: tokens.colors.text.tertiary }}>
-                    スケジュールの最適化、タスクの自動生成、分析など何でもお手伝いします
+                    設定で Gemini API キーを入れると会話が本番モードになります。未設定時はデモ応答です。
                   </div>
                 </motion.div>
               )}
 
-              {state.chatMessages
-                .filter(m => !m.typing || m.id === state.chatMessages[state.chatMessages.length - 1]?.id)
-                .map(msg => (
-                  <MessageBubble key={msg.id} msg={msg} />
-                ))}
+              {state.chatMessages.map(msg => (
+                <MessageBubble key={msg.id} msg={msg} onAction={handleChatAction} />
+              ))}
+              {isTyping && (
+                <MessageBubble
+                  msg={{
+                    id: 'typing',
+                    role: 'assistant',
+                    content: '',
+                    timestamp: new Date(),
+                    typing: true,
+                  }}
+                />
+              )}
               <div ref={bottomRef} />
             </div>
 
@@ -420,7 +448,7 @@ export const AIChat: React.FC = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: input.trim() && !isTyping ? 'pointer' : 'not-allowed',
                   flexShrink: 0,
-                  boxShadow: input.trim() && !isTyping ? '0 4px 12px rgba(59,130,246,0.35)' : 'none',
+                  boxShadow: input.trim() && !isTyping ? tokens.shadow.sm : 'none',
                   transition: 'all 0.2s ease',
                 }}
               >

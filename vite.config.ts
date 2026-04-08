@@ -1,32 +1,21 @@
-import build from '@hono/vite-build/cloudflare-pages'
-import devServer from '@hono/vite-dev-server'
-import adapter from '@hono/vite-dev-server/cloudflare'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-export default defineConfig(({ command }) => {
-  if (command === 'build') {
-    return {
-      plugins: [react(), build({ entry: 'src/index.tsx' })],
-      build: {
-        rollupOptions: {
-          input: {
-            index: 'src/index.tsx',
-            client: 'app/client.tsx',
-          },
-        },
-      },
-    }
-  }
-  return {
-    plugins: [
-      react(),
-      devServer({
-        adapter,
-        entry: 'src/index.tsx',
-        exclude: [/^\/app\//, /^\/@.+/, /^\/node_modules\/.*/],
-      }),
-    ],
-    server: { port: 3000 },
-  }
+export default defineConfig({
+  plugins: [react()],
+  root: '.',
+  /** リポジトリルートの .env / .env.local を確実に読む（カレントがずれても cwd を明示） */
+  envDir: '.',
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
+  server: {
+    port: 3000,
+    host: '0.0.0.0',
+    // @ts-expect-error - allow all hosts
+    allowedHosts: true,
+    cors: true,
+    hmr: false,
+  },
 })

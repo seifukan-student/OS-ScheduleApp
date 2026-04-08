@@ -77,6 +77,20 @@ export interface ChatAction {
   payload?: Record<string, unknown>
 }
 
+export interface TeamMember {
+  id: string
+  name: string
+  role?: string
+}
+
+/** チーム画面での進捗報告（自分・メンバー共有用） */
+export interface TeamProgressReport {
+  id: string
+  memberId: string
+  text: string
+  at: Date
+}
+
 export interface AppState {
   currentDate: Date
   viewMode: ViewMode
@@ -87,5 +101,17 @@ export interface AppState {
   events: CalendarEvent[]
   projects: WBSProject[]
   chatMessages: ChatMessage[]
-  activePanel: 'calendar' | 'wbs' | 'both'
+  activePanel: 'calendar' | 'wbs' | 'both' | 'analytics' | 'team'
+  createModalInitialDateTime: { date: string; start: string; end: string } | null
+  createModalOpen: boolean
+  createModalMode: 'choice' | 'event' | 'wbs'
+  createModalPreselectedEventId: string | null
+  searchOpen: boolean
+  notificationsOpen: boolean
+  settingsOpen: boolean
+  editingEventId: string | null
+  teamMembers: TeamMember[]
+  teamProgressReports: TeamProgressReport[]
+  /** 進捗報告時の「自分」として使うメンバー ID */
+  selfMemberId: string | null
 }

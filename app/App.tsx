@@ -8,6 +8,12 @@ import { MonthView, WeekView, DayView, AgendaView } from './components/CalendarV
 import { WBSPanel } from './components/WBSPanel'
 import { EventDetailPanel } from './components/EventDetail'
 import { AIChat } from './components/AIChat'
+import { CreateModal } from './components/CreateModal'
+import { SearchOverlay } from './components/SearchOverlay'
+import { NotificationsPanel } from './components/NotificationsPanel'
+import { SettingsPanel } from './components/SettingsPanel'
+import { AnalyticsPanel } from './components/AnalyticsPanel'
+import { TeamPanel } from './components/TeamPanel'
 import { tokens } from './utils/design'
 
 const globalStyles = `
@@ -15,17 +21,17 @@ const globalStyles = `
   body { 
     background: ${tokens.colors.bg.primary}; 
     color: ${tokens.colors.text.primary};
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
   }
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: ${tokens.colors.bg.tertiary}; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
   input::placeholder { color: ${tokens.colors.text.tertiary}; }
   button { font-family: inherit; }
   @keyframes shimmer {
@@ -71,6 +77,9 @@ const MainContent: React.FC = () => {
     }}>
       <TopBar />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {state.activePanel === 'analytics' && <AnalyticsPanel />}
+        {state.activePanel === 'team' && <TeamPanel />}
+
         {(state.activePanel === 'calendar' || state.activePanel === 'both') && (
           <CalendarPanel />
         )}
@@ -118,6 +127,10 @@ const AppInner: React.FC = () => {
       <Sidebar />
       <MainContent />
       <AIChat />
+      <CreateModal />
+      <SearchOverlay />
+      <NotificationsPanel />
+      <SettingsPanel />
     </div>
   )
 }

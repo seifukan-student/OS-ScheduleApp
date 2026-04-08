@@ -6,10 +6,7 @@
     "strict": true,
     "skipLibCheck": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "react"
+    "jsx": "react-jsx"
   },
-  "include": ["src", "app"],
-  "exclude": ["node_modules"]
+  "include": ["app/**/*", "index.html"]
 }

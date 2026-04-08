@@ -150,21 +150,26 @@ export const TopBar: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        background: tokens.colors.bg.tertiary,
-        border: `1px solid ${tokens.colors.border.subtle}`,
-        borderRadius: 10,
-        padding: '6px 12px',
-        width: 200,
-        cursor: 'text',
-      }}>
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => dispatch({ type: 'OPEN_SEARCH' })}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: tokens.colors.bg.tertiary,
+          border: `1px solid ${tokens.colors.border.subtle}`,
+          borderRadius: 10,
+          padding: '6px 12px',
+          width: 200,
+          cursor: 'pointer',
+        }}
+      >
         <Search size={14} color={tokens.colors.text.tertiary} />
         <span style={{ fontSize: 12.5, color: tokens.colors.text.tertiary }}>検索...</span>
         <span style={{ marginLeft: 'auto', fontSize: 11, color: tokens.colors.text.tertiary, background: tokens.colors.bg.card, padding: '1px 5px', borderRadius: 4 }}>⌘K</span>
-      </div>
+      </motion.button>
 
       {/* AI Chat Toggle */}
       <motion.button
@@ -184,7 +189,7 @@ export const TopBar: React.FC = () => {
           gap: 6,
           fontSize: 12.5,
           fontWeight: 600,
-          boxShadow: state.chatOpen ? '0 4px 12px rgba(59,130,246,0.35)' : 'none',
+          boxShadow: state.chatOpen ? tokens.shadow.sm : 'none',
           border: state.chatOpen ? '1px solid transparent' : `1px solid ${tokens.colors.border.default}`,
         }}
       >
@@ -196,6 +201,7 @@ export const TopBar: React.FC = () => {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
+        onClick={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
         style={{
           padding: 8,
           borderRadius: 8,
@@ -214,7 +220,7 @@ export const TopBar: React.FC = () => {
           width: 7,
           height: 7,
           borderRadius: '50%',
-          background: '#EF4444',
+          background: tokens.colors.accent.red,
           border: `1.5px solid ${tokens.colors.bg.secondary}`,
         }} />
       </motion.button>
