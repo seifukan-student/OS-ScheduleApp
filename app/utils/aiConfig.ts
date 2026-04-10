@@ -34,10 +34,8 @@ export function clearStoredGeminiApiKey(): void {
   localStorage.removeItem(KEY_GEMINI)
 }
 
-/** Vite の環境変数 or localStorage。どちらもなければデモ応答 */
+/** ブラウザに保存したキーのみ（VITE_ 経由は使わない＝本番バンドルに API キーを埋め込まない） */
 export function getGeminiApiKey(): string | null {
-  const env = typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY
-  if (typeof env === 'string' && env.trim()) return env.trim()
   return getStoredGeminiApiKey()
 }
 

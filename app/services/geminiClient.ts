@@ -198,7 +198,7 @@ export async function geminiSuggestWbsTasks(
   options?: WbsAiOptions
 ): Promise<WbsTaskSuggestion[]> {
   const apiKey = getGeminiApiKey()
-  if (!apiKey) throw new Error('Gemini API キーが設定されていません（設定画面または VITE_GEMINI_API_KEY）')
+  if (!apiKey) throw new Error('Gemini API キーが設定されていません（設定画面で保存してください）')
 
   const viaSection = formatViaEventsSection(options?.viaEvents ?? [])
   const notesSection = formatUserNotesSection(options?.userNotes ?? '')

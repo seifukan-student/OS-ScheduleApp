@@ -3,9 +3,11 @@ import { motion } from 'framer-motion'
 import { Calendar, Zap } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { tokens } from '../utils/design'
+import { getSupabaseAuthCallbackUrl } from '../utils/supabaseOAuthHint'
 
 export const LoginPage: React.FC = () => {
   const { signInWithGoogle, loading } = useAuth()
+  const googleRedirectUri = getSupabaseAuthCallbackUrl()
 
   return (
     <div
@@ -124,6 +126,46 @@ export const LoginPage: React.FC = () => {
           <Zap size={12} />
           Gemini AI 対応
         </div>
+
+        {googleRedirectUri && (
+          <details
+            style={{
+              width: '100%',
+              marginTop: 4,
+              fontSize: 11,
+              color: tokens.colors.text.tertiary,
+              lineHeight: 1.5,
+            }}
+          >
+            <summary style={{ cursor: 'pointer', color: tokens.colors.text.secondary, fontWeight: 600 }}>
+              エラー 400: redirect_uri_mismatch のとき
+            </summary>
+            <p style={{ marginTop: 10, marginBottom: 8 }}>
+              Google Cloud Console → 対象の OAuth 2.0 クライアント →
+              <strong> 承認済みのリダイレクト URI</strong> に、次を<strong>そのまま</strong>追加してください（アプリの URL ではありません）。
+            </p>
+            <code
+              style={{
+                display: 'block',
+                wordBreak: 'break-all',
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: tokens.colors.bg.tertiary,
+                border: `1px solid ${tokens.colors.border.subtle}`,
+                fontSize: 11,
+                color: tokens.colors.text.primary,
+              }}
+            >
+              {googleRedirectUri}
+            </code>
+            <p style={{ marginTop: 10 }}>
+              <strong>承認済みの JavaScript 生成元</strong>には{' '}
+              <code style={{ fontSize: 10, background: tokens.colors.bg.tertiary, padding: '1px 4px', borderRadius: 4 }}>http://localhost:3000</code>
+              {' '}や本番のオリジン（例: Vercel の URL）を入れます。Supabase ダッシュボードの Authentication → URL
+              Configuration では、Site URL と Redirect URLs にアプリの URL を登録してください。
+            </p>
+          </details>
+        )}
       </motion.div>
     </div>
   )

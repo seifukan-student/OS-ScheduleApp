@@ -144,9 +144,13 @@ const SupabaseConfigMissing: React.FC = () => (
     >
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Supabase の設定が必要です</h1>
       <p style={{ fontSize: 14, color: tokens.colors.text.secondary, lineHeight: 1.6, marginBottom: 16 }}>
-        環境変数が空のままだと Supabase の SDK が起動時にエラーを投げ、画面が真っ白になります。プロジェクトルートに{' '}
+        環境変数が空のままだと Supabase の SDK が起動時にエラーを投げ、画面が真っ白になります。ローカルではプロジェクトルートに{' '}
         <code style={{ fontSize: 13, background: tokens.colors.bg.tertiary, padding: '2px 6px', borderRadius: 4 }}>.env</code>
-        {' '}を置き、次を設定してください（値は Supabase ダッシュボードの Settings → API から）。
+        {' '}（git に含めない）を置き、次を設定してください。Vercel 等ではダッシュボードの Environment Variables に同じ名前で登録します。
+        <span style={{ display: 'block', marginTop: 8, fontSize: 12, color: tokens.colors.text.tertiary }}>
+          ※ <code style={{ fontSize: 11 }}>.env</code> ファイル自体はビルド成果物に含まれません。参照している{' '}
+          <code style={{ fontSize: 11 }}>VITE_*</code> の値だけがビルド時に JS へ差し替えられます（Supabase anon は公開前提）。
+        </span>
       </p>
       <pre
         style={{

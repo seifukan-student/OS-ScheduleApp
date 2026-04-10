@@ -28,7 +28,6 @@ export const SettingsPanel: React.FC = () => {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [settings, setSettings] = useState<UserSettings>(defaultSettings)
-  const [settingsLoaded, setSettingsLoaded] = useState(false)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dispatch({ type: 'CLOSE_SETTINGS' }) }
@@ -42,17 +41,11 @@ export const SettingsPanel: React.FC = () => {
       setSavedMsg(null)
       fetchUserSettings(user.id).then(s => {
         if (s) setSettings(s)
-        setSettingsLoaded(true)
-      }).catch(() => setSettingsLoaded(true))
+      }).catch(() => {})
     }
   }, [state.settingsOpen, user])
 
   if (!state.settingsOpen) return null
-
-  const envHasKey =
-    typeof import.meta !== 'undefined' &&
-    typeof import.meta.env?.VITE_GEMINI_API_KEY === 'string' &&
-    !!import.meta.env.VITE_GEMINI_API_KEY.trim()
 
   const saveApiKey = () => {
     const t = apiKeyInput.trim()
@@ -223,7 +216,7 @@ export const SettingsPanel: React.FC = () => {
               </div>
               {savedMsg && <div style={{ marginTop: 10, fontSize: 12, color: tokens.colors.accent.green }}>{savedMsg}</div>}
               <div style={{ marginTop: 12, fontSize: 11, color: tokens.colors.text.tertiary, lineHeight: 1.5 }}>
-                {envHasKey ? '※ `.env` の VITE_GEMINI_API_KEY が設定済み（ビルド埋め込み）。ブラウザ保存より優先されます。' : '※ `.env` に VITE_GEMINI_API_KEY= でも利用可。'}
+                API キーはこの端末のブラウザにだけ保存され、本番ビルドの JS には埋め込みません。
               </div>
             </div>
 
