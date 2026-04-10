@@ -4,7 +4,8 @@ import {
   CheckCircle2, Circle, Clock, AlertTriangle, ChevronRight,
   Plus, Zap, CheckSquare, Pencil, Trash2, Filter, LayoutList, Table2, LayoutGrid,
 } from 'lucide-react'
-import { format, startOfDay, isBefore } from 'date-fns'
+import { format } from 'date-fns'
+import { isDueDateOverdue } from '../utils/dueDate'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
 import { WBSTask, WBSProject, TaskStatus, Priority } from '../types'
@@ -176,7 +177,7 @@ const TaskRow: React.FC<{ task: WBSTask; projectId: string; depth?: number }> = 
             alignItems: 'center',
             gap: 4,
             fontSize: UI.text.sm,
-            color: task.dueDate < new Date() && task.status !== 'done'
+            color: task.dueDate && task.status !== 'done' && isDueDateOverdue(task.dueDate)
               ? tokens.colors.accent.red
               : tokens.colors.text.tertiary,
             flexShrink: 0,
@@ -413,10 +414,9 @@ type WbsLayout = 'projects' | 'table' | 'board'
 type FlatTaskRow = { task: WBSTask; projectId: string; projectTitle: string; projectColor: string }
 
 function taskMatchesFilter(t: WBSTask, taskFilter: TaskListFilter): boolean {
-  const today = startOfDay(new Date())
   if (taskFilter === 'open') return t.status !== 'done'
   if (taskFilter === 'overdue') {
-    return !!(t.dueDate && t.status !== 'done' && isBefore(startOfDay(t.dueDate), today))
+    return !!(t.dueDate && t.status !== 'done' && isDueDateOverdue(t.dueDate))
   }
   return true
 }
@@ -798,11 +798,10 @@ const ProjectCard: React.FC<{ project: WBSProject; defaultExpanded?: boolean; ta
   const blocked = project.tasks.filter(t => t.status === 'blocked').length
 
   const visibleTasks = useMemo(() => {
-    const today = startOfDay(new Date())
     return project.tasks.filter(t => {
       if (taskFilter === 'open') return t.status !== 'done'
       if (taskFilter === 'overdue') {
-        return !!(t.dueDate && t.status !== 'done' && isBefore(startOfDay(t.dueDate), today))
+        return !!(t.dueDate && t.status !== 'done' && isDueDateOverdue(t.dueDate))
       }
       return true
     })

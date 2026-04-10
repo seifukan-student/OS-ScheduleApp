@@ -4,7 +4,8 @@ import {
   BarChart3, Calendar, CheckSquare, Clock, Target, AlertCircle,
   PieChart, CalendarDays, TrendingUp, X,
 } from 'lucide-react'
-import { format, startOfWeek, endOfWeek, addWeeks, isWithinInterval, isThisMonth, addDays, isAfter, startOfDay, isBefore } from 'date-fns'
+import { format, startOfWeek, endOfWeek, addWeeks, isWithinInterval, isThisMonth, addDays, isAfter } from 'date-fns'
+import { isDueDateOverdue } from '../utils/dueDate'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
 import { tokens, categoryLabels, statusLabels } from '../utils/design'
@@ -19,7 +20,6 @@ export const AnalyticsPanel: React.FC = () => {
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
   const lastWeekStart = addWeeks(weekStart, -1)
   const lastWeekEnd = addWeeks(weekEnd, -1)
-  const today = startOfDay(now)
 
   const thisWeekEvents = state.events.filter(e =>
     isWithinInterval(e.start, { start: weekStart, end: weekEnd })
@@ -38,7 +38,7 @@ export const AnalyticsPanel: React.FC = () => {
   const taskRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
   const overdueCount = allTasks.filter(
-    t => t.dueDate && t.status !== 'done' && isBefore(startOfDay(t.dueDate), today)
+    t => t.dueDate && t.status !== 'done' && isDueDateOverdue(t.dueDate, now)
   ).length
 
   const projectsWithEvent = state.projects.filter(p => p.eventId).length
@@ -87,9 +87,9 @@ export const AnalyticsPanel: React.FC = () => {
   const overdueTasksList = useMemo(
     () =>
       allTasks.filter(
-        t => t.dueDate && t.status !== 'done' && isBefore(startOfDay(t.dueDate), today)
+        t => t.dueDate && t.status !== 'done' && isDueDateOverdue(t.dueDate, now)
       ),
-    [allTasks, today]
+    [allTasks, now]
   )
 
   const wbsLinkedEvents = useMemo(() => state.events.filter(e => e.wbsId), [state.events])

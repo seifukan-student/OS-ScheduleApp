@@ -10,6 +10,7 @@ import { CalendarEvent, WBSProject, WBSTask } from '../types'
 import { tokens } from '../utils/design'
 import { getGeminiApiKey, subscribeGeminiApiKey, getGeminiConfiguredSnapshot } from '../utils/aiConfig'
 import { buildCalendarContextForAi } from '../utils/buildAiContext'
+import { parseLocalDateYMD } from '../utils/dueDate'
 import { geminiSuggestWbsTasks, type WbsTaskSuggestion, type WbsAiOptions } from '../services/geminiClient'
 
 const COLORS = { work: '#3B82F6', project: '#F59E0B', event: '#EC4899' }
@@ -189,7 +190,7 @@ export const CreateModal: React.FC = () => {
   const submitEvent = () => {
     const [sh, sm] = eventStart.split(':').map(Number)
     const [eh, em] = eventEnd.split(':').map(Number)
-    const d = new Date(eventDate)
+    const d = parseLocalDateYMD(eventDate)
     const start = setMinutes(setHours(d, sh), sm)
     const end = setMinutes(setHours(d, eh), em)
     if (isEdit && editingEvent) {
@@ -319,7 +320,7 @@ export const CreateModal: React.FC = () => {
     setWbsDeferredEvent(null)
     try {
       const [th, tmi] = wbsTextTime.split(':').map(n => parseInt(n, 10))
-      const d = new Date(wbsTextDate)
+      const d = parseLocalDateYMD(wbsTextDate)
       const start = setMinutes(setHours(d, Number.isFinite(th) ? th : 18), Number.isFinite(tmi) ? tmi : 0)
       const synthetic: CalendarEvent = {
         id: `syn-wbs-${Date.now()}`,

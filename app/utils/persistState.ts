@@ -1,4 +1,5 @@
 import { CalendarEvent, WBSProject, ChatMessage, WBSTask, TeamMember, TeamProgressReport } from '../types'
+import { parsePersistedDate } from './dueDate'
 
 const STORAGE_KEY = 'lumina_app_data_v2'
 
@@ -14,9 +15,9 @@ export interface PersistedAppSlice {
 function reviveTask(t: WBSTask): WBSTask {
   return {
     ...t,
-    startDate: t.startDate ? new Date(t.startDate as unknown as string) : undefined,
-    dueDate: t.dueDate ? new Date(t.dueDate as unknown as string) : undefined,
-    completedAt: t.completedAt ? new Date(t.completedAt as unknown as string) : undefined,
+    startDate: parsePersistedDate(t.startDate),
+    dueDate: parsePersistedDate(t.dueDate),
+    completedAt: parsePersistedDate(t.completedAt),
   }
 }
 
@@ -26,7 +27,7 @@ function reviveProject(p: WBSProject): WBSProject {
     tasks: (p.tasks || []).map(reviveTask),
     createdAt: new Date(p.createdAt as unknown as string),
     updatedAt: new Date(p.updatedAt as unknown as string),
-    dueDate: p.dueDate ? new Date(p.dueDate as unknown as string) : undefined,
+    dueDate: parsePersistedDate(p.dueDate),
   }
 }
 

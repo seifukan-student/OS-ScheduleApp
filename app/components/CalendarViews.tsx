@@ -7,11 +7,25 @@ import {
 } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
-import { CalendarEvent } from '../types'
+import { CalendarEvent, WBSTask, WBSProject } from '../types'
 import { tokens } from '../utils/design'
+import { isDueDateOverdue } from '../utils/dueDate'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日']
+
+type DueTaskRow = { task: WBSTask; projectId: string; color: string }
+
+function buildDueTasksForDay(projects: WBSProject[], day: Date): DueTaskRow[] {
+  const rows: DueTaskRow[] = []
+  for (const p of projects) {
+    for (const t of p.tasks) {
+      if (t.status === 'done' || !t.dueDate) continue
+      if (isSameDay(t.dueDate, day)) rows.push({ task: t, projectId: p.id, color: p.color })
+    }
+  }
+  return rows.sort((a, b) => a.task.title.localeCompare(b.task.title, 'ja'))
+}
 
 const EventPill: React.FC<{ event: CalendarEvent; compact?: boolean; onClick?: (e?: React.MouseEvent) => void }> = ({ event, compact, onClick }) => (
   <motion.div
@@ -40,7 +54,7 @@ const EventPill: React.FC<{ event: CalendarEvent; compact?: boolean; onClick?: (
 
 export const MonthView: React.FC = () => {
   const { state, dispatch } = useAppState()
-  const { currentDate, events } = state
+  const { currentDate, events, projects } = state
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentDate)
@@ -75,6 +89,9 @@ export const MonthView: React.FC = () => {
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: `repeat(${days.length / 7}, 1fr)`, overflow: 'hidden' }}>
         {days.map((day, idx) => {
           const dayEvents = getEventsForDay(day)
+          const dueTasksDay = buildDueTasksForDay(projects, day)
+          const dayTaskChips = dueTasksDay.slice(0, 2)
+          const taskExtra = dueTasksDay.length - dayTaskChips.length
           const isCurrentMonth = isSameMonth(day, currentDate)
           const isTodayDay = isToday(day)
           const allEvents = events.filter(e => isSameDay(e.start, day))
@@ -127,6 +144,43 @@ export const MonthView: React.FC = () => {
                 </div>
               </div>
 
+              {dueTasksDay.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 2 }}>
+                  {dayTaskChips.map(({ task, projectId, color }) => (
+                    <motion.div
+                      key={task.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        dispatch({ type: 'SELECT_PROJECT', payload: projectId })
+                        dispatch({ type: 'SET_PANEL', payload: 'both' })
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 600,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        background: `${color}14`,
+                        border: `1px solid ${color}38`,
+                        borderLeft: `2px solid ${task.dueDate && isDueDateOverdue(task.dueDate) ? tokens.colors.accent.red : color}`,
+                        color: task.dueDate && isDueDateOverdue(task.dueDate) ? tokens.colors.accent.red : color,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {task.title}
+                    </motion.div>
+                  ))}
+                  {taskExtra > 0 && (
+                    <div style={{ fontSize: 9, color: tokens.colors.text.tertiary, paddingLeft: 2 }}>
+                      +{taskExtra} タスク
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
                 {dayEvents.map(evt => (
                   <EventPill
@@ -152,7 +206,7 @@ export const MonthView: React.FC = () => {
 
 export const WeekView: React.FC = () => {
   const { state, dispatch } = useAppState()
-  const { currentDate, events } = state
+  const { currentDate, events, projects } = state
   const HOUR_HEIGHT = 60
 
   const weekDays = useMemo(() => {
@@ -162,6 +216,9 @@ export const WeekView: React.FC = () => {
 
   const getEventsForDay = (day: Date) =>
     events.filter(e => isSameDay(e.start, day) && !e.allDay)
+
+  const getAllDayEventsForDay = (day: Date) =>
+    events.filter(e => e.allDay && isSameDay(e.start, day))
 
   const getEventStyle = (event: CalendarEvent) => {
     const startMins = getHours(event.start) * 60 + getMinutes(event.start)
@@ -217,6 +274,111 @@ export const WeekView: React.FC = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* 終日予定 + 期限タスク（Google カレンダーの終日帯のようにタイムグリッド直上） */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '52px repeat(7, 1fr)',
+          borderBottom: `1px solid ${tokens.colors.border.subtle}`,
+          flexShrink: 0,
+          background: tokens.colors.bg.card,
+          maxHeight: 120,
+        }}
+      >
+        <div
+          style={{
+            borderRight: `1px solid ${tokens.colors.border.subtle}`,
+            padding: '8px 4px',
+            fontSize: 9,
+            fontWeight: 700,
+            color: tokens.colors.text.tertiary,
+            lineHeight: 1.25,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            textAlign: 'center',
+          }}
+        >
+          終日・
+          <br />
+          期限
+        </div>
+        {weekDays.map(day => {
+          const allDayList = getAllDayEventsForDay(day)
+          const dueList = buildDueTasksForDay(projects, day)
+          return (
+            <div
+              key={`strip-${day.toISOString()}`}
+              style={{
+                borderRight: `1px solid ${tokens.colors.border.subtle}`,
+                padding: 4,
+                minHeight: 36,
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+              }}
+              className="custom-scrollbar"
+            >
+              {allDayList.map(ev => (
+                <motion.div
+                  key={ev.id}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={e => {
+                    e.stopPropagation()
+                    dispatch({ type: 'SELECT_EVENT', payload: ev.id })
+                  }}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: '2px 6px',
+                    borderRadius: 5,
+                    background: `${ev.color}22`,
+                    border: `1px solid ${ev.color}44`,
+                    borderLeft: `3px solid ${ev.color}`,
+                    color: ev.color,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ev.title}
+                </motion.div>
+              ))}
+              {dueList.map(({ task, projectId, color }) => (
+                <motion.div
+                  key={task.id}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={e => {
+                    e.stopPropagation()
+                    dispatch({ type: 'SELECT_PROJECT', payload: projectId })
+                    dispatch({ type: 'SET_PANEL', payload: 'both' })
+                  }}
+                  title={`${task.title}（期限）`}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: '2px 6px',
+                    borderRadius: 5,
+                    background: `${color}18`,
+                    border: `1px solid ${color}40`,
+                    borderLeft: `3px solid ${task.dueDate && isDueDateOverdue(task.dueDate) ? tokens.colors.accent.red : color}`,
+                    color: task.dueDate && isDueDateOverdue(task.dueDate) ? tokens.colors.accent.red : color,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {task.title}
+                </motion.div>
+              ))}
+            </div>
+          )
+        })}
       </div>
 
       {/* Time Grid */}
@@ -352,7 +514,10 @@ export const WeekView: React.FC = () => {
 export const DayView: React.FC = () => {
   const { state, dispatch } = useAppState()
   const HOUR_HEIGHT = 70
-  const dayEvents = state.events.filter(e => isSameDay(e.start, state.currentDate))
+  const day = state.currentDate
+  const allDayEvents = state.events.filter(e => e.allDay && isSameDay(e.start, day))
+  const timedEvents = state.events.filter(e => !e.allDay && isSameDay(e.start, day))
+  const dueList = buildDueTasksForDay(state.projects, day)
   const now = new Date()
   const nowTop = (getHours(now) * 60 + getMinutes(now)) / 60 * HOUR_HEIGHT
 
@@ -366,7 +531,94 @@ export const DayView: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '60px 1fr',
+          borderBottom: `1px solid ${tokens.colors.border.subtle}`,
+          flexShrink: 0,
+          background: tokens.colors.bg.card,
+          maxHeight: 120,
+        }}
+      >
+        <div
+          style={{
+            padding: '10px 6px',
+            fontSize: 9,
+            fontWeight: 700,
+            color: tokens.colors.text.tertiary,
+            lineHeight: 1.25,
+            borderRight: `1px solid ${tokens.colors.border.subtle}`,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            textAlign: 'center',
+          }}
+        >
+          終日・
+          <br />
+          期限
+        </div>
+        <div
+          style={{
+            padding: 8,
+            overflowY: 'auto',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+            alignContent: 'flex-start',
+          }}
+          className="custom-scrollbar"
+        >
+          {allDayEvents.map(ev => (
+            <motion.div
+              key={ev.id}
+              whileHover={{ scale: 1.02 }}
+              onClick={() => dispatch({ type: 'SELECT_EVENT', payload: ev.id })}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: 6,
+                background: `${ev.color}22`,
+                border: `1px solid ${ev.color}44`,
+                borderLeft: `3px solid ${ev.color}`,
+                color: ev.color,
+                cursor: 'pointer',
+                maxWidth: '100%',
+              }}
+            >
+              {ev.title}
+            </motion.div>
+          ))}
+          {dueList.map(({ task, projectId, color }) => (
+            <motion.div
+              key={task.id}
+              whileHover={{ scale: 1.02 }}
+              onClick={() => {
+                dispatch({ type: 'SELECT_PROJECT', payload: projectId })
+                dispatch({ type: 'SET_PANEL', payload: 'both' })
+              }}
+              title={`${task.title}（期限）`}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: 6,
+                background: `${color}18`,
+                border: `1px solid ${color}40`,
+                borderLeft: `3px solid ${task.dueDate && isDueDateOverdue(task.dueDate) ? tokens.colors.accent.red : color}`,
+                color: task.dueDate && isDueDateOverdue(task.dueDate) ? tokens.colors.accent.red : color,
+                cursor: 'pointer',
+                maxWidth: '100%',
+              }}
+            >
+              {task.title}
+            </motion.div>
+          ))}
+        </div>
+      </div>
       <div style={{ flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
         <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', minHeight: HOUR_HEIGHT * 24 }}>
           <div style={{ borderRight: `1px solid ${tokens.colors.border.subtle}` }}>
@@ -417,7 +669,7 @@ export const DayView: React.FC = () => {
                 <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: tokens.colors.accent.red }} />
               </div>
             )}
-            {dayEvents.map(event => {
+            {timedEvents.map(event => {
               const { top, height } = getEventStyle(event)
               return (
                 <motion.div
