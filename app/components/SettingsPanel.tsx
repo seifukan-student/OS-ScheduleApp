@@ -183,6 +183,26 @@ export const SettingsPanel: React.FC = () => {
               </div>
             </div>
 
+            <div style={{ fontSize: 12, fontWeight: 600, color: tokens.colors.text.tertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              アカウント（Google）
+            </div>
+            <div style={{
+              padding: 14,
+              borderRadius: 12,
+              background: tokens.colors.bg.card,
+              border: `1px solid ${tokens.colors.border.subtle}`,
+              marginBottom: 16,
+            }}>
+              <p style={{ fontSize: 13, color: tokens.colors.text.secondary, lineHeight: 1.55, marginBottom: 10 }}>
+                トップバーの「Sign in with Google」は、Google Cloud Console で「OAuth 2.0 クライアント ID（ウェブアプリケーション）」を作成し、
+                <code style={{ fontSize: 12, background: tokens.colors.bg.tertiary, padding: '1px 6px', borderRadius: 4 }}>VITE_GOOGLE_CLIENT_ID</code>
+                {' '}にクライアント ID を設定してください。承認済みの JavaScript 生成元に、ローカル（例: <code style={{ fontSize: 12 }}>http://localhost:3000</code>）と本番のオリジンを追加します。
+              </p>
+              <p style={{ fontSize: 12, color: tokens.colors.text.tertiary, lineHeight: 1.5 }}>
+                ログイン情報はブラウザの localStorage に保存され、カレンダーデータの同期用ではありません（表示・識別用）。
+              </p>
+            </div>
+
             <div style={{
               padding: 14,
               borderRadius: 12,

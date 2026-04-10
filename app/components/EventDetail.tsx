@@ -308,8 +308,12 @@ export const EventDetailPanel: React.FC = () => {
                 編集
               </motion.button>
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.02 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (!confirm('この予定を削除しますか？')) return
                   dispatch({ type: 'REMOVE_EVENT', payload: event.id })
                   dispatch({ type: 'SELECT_EVENT', payload: null })
                 }}

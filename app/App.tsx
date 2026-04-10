@@ -1,6 +1,8 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AppProvider, useAppState } from './store/AppContext'
+import { AuthProvider } from './auth/AuthContext'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { DashboardStrip } from './components/DashboardStrip'
@@ -135,12 +137,23 @@ const AppInner: React.FC = () => {
   )
 }
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+
+const GoogleAuthShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  if (!googleClientId?.trim()) return <>{children}</>
+  return <GoogleOAuthProvider clientId={googleClientId.trim()}>{children}</GoogleOAuthProvider>
+}
+
 export const App: React.FC = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
       <AppProvider>
-        <AppInner />
+        <AuthProvider>
+          <GoogleAuthShell>
+            <AppInner />
+          </GoogleAuthShell>
+        </AuthProvider>
       </AppProvider>
     </>
   )

@@ -104,6 +104,12 @@ const TaskRow: React.FC<{ task: WBSTask; projectId: string; depth?: number }> = 
     dispatch({ type: 'DELETE_TASK', payload: { projectId, taskId: task.id } })
   }
 
+  const onDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    deleteTask()
+  }
+
   const priorityColor = tokens.colors.priority[task.priority]
   const statusColor = tokens.colors.status[task.status]
 
@@ -129,6 +135,7 @@ const TaskRow: React.FC<{ task: WBSTask; projectId: string; depth?: number }> = 
       >
         {/* Status toggle */}
         <motion.button
+          type="button"
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleStatus}
@@ -250,7 +257,7 @@ const TaskRow: React.FC<{ task: WBSTask; projectId: string; depth?: number }> = 
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
             title="削除"
-            onClick={deleteTask}
+            onClick={onDeleteClick}
             style={{
               padding: 6,
               border: 'none',
@@ -574,7 +581,11 @@ const TasksTableView: React.FC<{ rows: FlatTaskRow[] }> = ({ rows }) => {
                   <motion.button
                     type="button"
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => del(projectId, task.id, task.title)}
+                    onClick={e => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      del(projectId, task.id, task.title)
+                    }}
                     style={{
                       padding: '8px 12px',
                       borderRadius: 10,
@@ -902,7 +913,11 @@ const ProjectCard: React.FC<{ project: WBSProject; defaultExpanded?: boolean; ta
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
                 title="プロジェクトを削除"
-                onClick={deleteProject}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  deleteProject()
+                }}
                 style={{
                   padding: 8,
                   border: 'none',

@@ -1,14 +1,21 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { GoogleLogin } from '@react-oauth/google'
 import {
   ChevronLeft, ChevronRight, Calendar, Grid3X3, List, LayoutDashboard,
-  Search, Filter, Menu, MessageSquare, Bell, Zap
+  Search, Menu, Bell, Zap
 } from 'lucide-react'
 import { format, addWeeks, subWeeks, addMonths, subMonths, addDays, subDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
-import { tokens, glassStyle } from '../utils/design'
+import { useAuth } from '../auth/AuthContext'
+import { tokens } from '../utils/design'
 import { ViewMode } from '../types'
+
+const googleClientId =
+  typeof import.meta !== 'undefined' && typeof import.meta.env?.VITE_GOOGLE_CLIENT_ID === 'string'
+    ? import.meta.env.VITE_GOOGLE_CLIENT_ID.trim()
+    : ''
 
 const viewButtons: { mode: ViewMode; icon: React.FC<{ size?: number }>; label: string }[] = [
   { mode: 'month', icon: Grid3X3, label: '月' },
@@ -19,6 +26,7 @@ const viewButtons: { mode: ViewMode; icon: React.FC<{ size?: number }>; label: s
 
 export const TopBar: React.FC = () => {
   const { state, dispatch } = useAppState()
+  const { user, setUserFromCredential, logout } = useAuth()
 
   const navigate = (dir: 1 | -1) => {
     const d = state.currentDate
@@ -112,6 +120,83 @@ export const TopBar: React.FC = () => {
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
+
+      {googleClientId ? (
+        user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {user.picture ? (
+              <img
+                src={user.picture}
+                alt=""
+                width={28}
+                height={28}
+                style={{ borderRadius: '50%', border: `1px solid ${tokens.colors.border.subtle}` }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: tokens.colors.bg.tertiary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: tokens.colors.text.secondary,
+                }}
+              >
+                {(user.name || user.email || '?').charAt(0)}
+              </div>
+            )}
+            <span
+              style={{
+                fontSize: 12,
+                color: tokens.colors.text.secondary,
+                maxWidth: 140,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={user.email || user.name}
+            >
+              {user.name || user.email}
+            </span>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={logout}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 8,
+                border: `1px solid ${tokens.colors.border.default}`,
+                background: tokens.colors.bg.card,
+                cursor: 'pointer',
+                color: tokens.colors.text.secondary,
+                fontWeight: 600,
+              }}
+            >
+              ログアウト
+            </motion.button>
+          </div>
+        ) : (
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <GoogleLogin
+              onSuccess={res => {
+                if (res.credential) setUserFromCredential(res.credential)
+              }}
+              onError={() => {}}
+              theme="outline"
+              size="medium"
+              text="signin_with"
+              shape="pill"
+              locale="ja"
+            />
+          </div>
+        )
+      ) : null}
 
       {/* View Mode Switcher */}
       <div style={{

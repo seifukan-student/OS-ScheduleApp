@@ -248,6 +248,9 @@ export const AIChat: React.FC = () => {
 
   if (!state.chatOpen) return null
 
+  /** イベント詳細パネル（幅 360px）と重ならないよう右オフセット（削除ボタンが押せなくなるのを防ぐ） */
+  const chatRight = state.selectedEventId ? 384 : 20
+
   return (
     <AnimatePresence>
       <motion.div
@@ -257,7 +260,7 @@ export const AIChat: React.FC = () => {
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         style={{
           position: 'fixed',
-          right: 20,
+          right: chatRight,
           bottom: 20,
           width: 380,
           height: minimized ? 60 : 580,
@@ -268,8 +271,8 @@ export const AIChat: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          zIndex: 1000,
-          transition: 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          zIndex: 900,
+          transition: 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1), right 0.2s ease',
         }}
       >
         {/* Chat Header */}
