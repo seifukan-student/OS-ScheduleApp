@@ -9,7 +9,7 @@ const html = (js: string) => `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lumina — AI Calendar & WBS</title>
+  <title>OS Calendar App</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
@@ -35,8 +35,8 @@ const html = (js: string) => `<!DOCTYPE html>
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
       </svg>
     </div>
-    <div class="loader-text">Lumina</div>
-    <div class="loader-sub">AI Calendar & WBS</div>
+    <div class="loader-text">OS Calendar App</div>
+    <div class="loader-sub">カレンダー & WBS</div>
     <div class="loader-bar"><div class="loader-fill"></div></div>
   </div>
   <div id="root"></div>

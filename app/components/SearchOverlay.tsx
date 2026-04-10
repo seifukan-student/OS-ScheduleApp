@@ -11,13 +11,19 @@ export const SearchOverlay: React.FC = () => {
   const [query, setQuery] = useState('')
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dispatch({ type: 'CLOSE_SEARCH' }) }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dispatch({ type: 'CLOSE_SEARCH' })
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        dispatch({ type: state.searchOpen ? 'CLOSE_SEARCH' : 'OPEN_SEARCH' })
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dispatch])
+  }, [dispatch, state.searchOpen])
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return state.events.slice(0, 10)
+    if (!query.trim()) return [...state.events].sort((a, b) => a.start.getTime() - b.start.getTime()).slice(0, 10)
     const q = query.toLowerCase().trim()
     return state.events.filter(e => e.title.toLowerCase().includes(q) || (e.description?.toLowerCase().includes(q)))
   }, [state.events, query])
@@ -34,7 +40,7 @@ export const SearchOverlay: React.FC = () => {
         style={{
           position: 'fixed',
           inset: 0,
-          background: tokens.colors.overlay,
+          background: tokens.colors.bg.overlay,
           zIndex: 1500,
           display: 'flex',
           alignItems: 'flex-start',

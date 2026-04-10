@@ -2,7 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { GoogleLogin } from '@react-oauth/google'
 import {
-  ChevronLeft, ChevronRight, Calendar, Grid3X3, List, LayoutDashboard,
+  ChevronLeft, ChevronRight,
   Search, Menu, Bell, Zap
 } from 'lucide-react'
 import { format, addWeeks, subWeeks, addMonths, subMonths, addDays, subDays } from 'date-fns'
@@ -17,11 +17,11 @@ const googleClientId =
     ? import.meta.env.VITE_GOOGLE_CLIENT_ID.trim()
     : ''
 
-const viewButtons: { mode: ViewMode; icon: React.FC<{ size?: number }>; label: string }[] = [
-  { mode: 'month', icon: Grid3X3, label: '月' },
-  { mode: 'week', icon: LayoutDashboard, label: '週' },
-  { mode: 'day', icon: Calendar, label: '日' },
-  { mode: 'agenda', icon: List, label: 'リスト' },
+const viewButtons: { mode: ViewMode; label: string }[] = [
+  { mode: 'month', label: '月' },
+  { mode: 'week', label: '週' },
+  { mode: 'day', label: '日' },
+  { mode: 'agenda', label: 'リスト' },
 ]
 
 export const TopBar: React.FC = () => {
@@ -192,7 +192,6 @@ export const TopBar: React.FC = () => {
               size="medium"
               text="signin_with"
               shape="pill"
-              locale="ja"
             />
           </div>
         )

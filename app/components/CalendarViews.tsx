@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval,
   isSameDay, isSameMonth, isToday, format, getHours, getMinutes,
-  addHours, differenceInMinutes, addDays
+  addDays
 } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
@@ -701,8 +701,9 @@ export const DayView: React.FC = () => {
 
 export const AgendaView: React.FC = () => {
   const { state, dispatch } = useAppState()
+  const now = new Date()
   const upcoming = [...state.events]
-    .filter(e => e.start >= new Date())
+    .filter(e => e.end >= now)
     .sort((a, b) => a.start.getTime() - b.start.getTime())
     .slice(0, 20)
 

@@ -53,7 +53,7 @@ export const SettingsPanel: React.FC = () => {
         style={{
           position: 'fixed',
           inset: 0,
-          background: tokens.colors.overlay,
+          background: tokens.colors.bg.overlay,
           zIndex: 1500,
           display: 'flex',
           alignItems: 'center',

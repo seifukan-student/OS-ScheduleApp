@@ -1,8 +1,8 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  X, Clock, MapPin, Users, Tag, ChevronRight, Link2, Star,
-  Calendar, Flag, Zap, Edit3, Trash2, Copy, Bell, CheckSquare
+  X, MapPin, ChevronRight,
+  Calendar, Flag, Zap, Edit3, Trash2, Copy, Bell
 } from 'lucide-react'
 import { format, differenceInMinutes } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -15,7 +15,7 @@ export const EventDetailPanel: React.FC = () => {
   const event = state.events.find(e => e.id === state.selectedEventId)
   const project = event?.wbsId ? state.projects.find(p => p.id === event.wbsId) : null
 
-  if (!state.selectedEventId) return null
+  if (!state.selectedEventId || !event) return null
 
   return (
     <AnimatePresence>
@@ -74,7 +74,7 @@ export const EventDetailPanel: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   onClick={() => {
-                    const dup: CalendarEvent = { ...event, id: `evt-${Date.now()}`, title: `${event.title} (コピー)` }
+                    const dup: CalendarEvent = { ...event, id: `evt-${Date.now()}`, title: `${event.title} (コピー)`, wbsId: undefined }
                     dup.start = new Date(dup.start)
                     dup.end = new Date(dup.end)
                     dispatch({ type: 'ADD_EVENT', payload: dup })

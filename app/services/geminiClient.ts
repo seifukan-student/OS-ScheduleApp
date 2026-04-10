@@ -161,7 +161,8 @@ function parseTasksFromJsonText(jsonText: string, eventStart: Date): WbsTaskSugg
   if (arr.length === 0 && !Array.isArray(parsed) && !(parsed && typeof parsed === 'object' && 'tasks' in (parsed as object))) {
     throw new Error('JSON に tasks 配列またはタスクの配列がありません')
   }
-  return arr.map((item: Record<string, unknown>) => {
+  return arr.map((raw) => {
+    const item = raw as Record<string, unknown>
     const daysRaw = item.daysBeforeEvent
     const days = typeof daysRaw === 'number' && daysRaw >= 0 ? Math.floor(daysRaw) : undefined
     return {

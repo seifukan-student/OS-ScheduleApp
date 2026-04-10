@@ -2,7 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { format, isToday } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { Clock, TrendingUp, Zap, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react'
+import { Clock, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
 import { useAppState } from '../store/AppContext'
 import { tokens } from '../utils/design'
 

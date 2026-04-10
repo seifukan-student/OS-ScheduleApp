@@ -516,7 +516,7 @@ export const AnalyticsPanel: React.FC = () => {
             style={{
               position: 'fixed',
               inset: 0,
-              background: tokens.colors.overlay,
+              background: tokens.colors.bg.overlay,
               zIndex: 4000,
               display: 'flex',
               alignItems: 'center',

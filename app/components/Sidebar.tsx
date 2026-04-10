@@ -1,12 +1,12 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Calendar, CheckSquare, MessageSquare, Settings, Bell, Search,
-  ChevronLeft, ChevronRight, Plus, Zap, LayoutGrid, Moon, Sun,
-  BarChart3, Target, Clock, Users, Inbox
+  Calendar, CheckSquare, Settings, Bell, Plus, Zap,
+  BarChart3, Users,
 } from 'lucide-react'
 import { useAppState } from '../store/AppContext'
-import { tokens, glassStyle } from '../utils/design'
+import { useAuth } from '../auth/AuthContext'
+import { tokens } from '../utils/design'
 
 const navItems = [
   { id: 'calendar', icon: Calendar, label: 'カレンダー' },
@@ -15,17 +15,29 @@ const navItems = [
   { id: 'team', icon: Users, label: 'チーム' },
 ]
 
+const panelForNav: Record<string, string> = {
+  calendar: 'calendar',
+  wbs: 'wbs',
+  analytics: 'analytics',
+  team: 'team',
+}
+
+const navForPanel: Record<string, string> = {
+  calendar: 'calendar',
+  wbs: 'wbs',
+  both: 'calendar',
+  analytics: 'analytics',
+  team: 'team',
+}
+
 export const Sidebar: React.FC = () => {
   const { state, dispatch } = useAppState()
-  const [activeNav, setActiveNav] = useState('calendar')
+  const { user } = useAuth()
+  const activeNav = navForPanel[state.activePanel] || 'calendar'
 
   const handleNavClick = (id: string) => {
-    setActiveNav(id)
-    if (id === 'calendar') dispatch({ type: 'SET_PANEL', payload: 'calendar' })
-    else if (id === 'wbs') dispatch({ type: 'SET_PANEL', payload: 'wbs' })
-    else if (id === 'analytics') dispatch({ type: 'SET_PANEL', payload: 'analytics' })
-    else if (id === 'team') dispatch({ type: 'SET_PANEL', payload: 'team' })
-    else dispatch({ type: 'SET_PANEL', payload: 'both' })
+    const panel = panelForNav[id] ?? 'both'
+    dispatch({ type: 'SET_PANEL', payload: panel as typeof state.activePanel })
   }
 
   return (
@@ -75,7 +87,7 @@ export const Sidebar: React.FC = () => {
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <div style={{ fontSize: 17, fontWeight: 700, color: tokens.colors.text.primary, letterSpacing: '-0.3px' }}>Lumina</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: tokens.colors.text.primary, letterSpacing: '-0.3px' }}>OS Calendar</div>
               <div style={{ fontSize: 11, color: tokens.colors.text.tertiary, marginTop: 1 }}>AI Calendar</div>
             </motion.div>
           )}
@@ -275,24 +287,28 @@ export const Sidebar: React.FC = () => {
           alignItems: 'center',
           gap: 10,
         }}>
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#fff',
-          }}>田</div>
+          {user?.picture ? (
+            <img src={user.picture} alt="" width={32} height={32} style={{ borderRadius: '50%', flexShrink: 0 }} />
+          ) : (
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fff',
+            }}>{(user?.name || '?').charAt(0)}</div>
+          )}
           <AnimatePresence>
             {state.sidebarOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: tokens.colors.text.primary }}>田中 太郎</div>
-                <div style={{ fontSize: 11, color: tokens.colors.text.tertiary }}>Pro プラン</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: tokens.colors.text.primary }}>{user?.name || 'ゲスト'}</div>
+                <div style={{ fontSize: 11, color: tokens.colors.text.tertiary }}>{user?.email || ''}</div>
               </motion.div>
             )}
           </AnimatePresence>

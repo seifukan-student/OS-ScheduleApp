@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'lumina',
+      name: 'os-calendar-app',
       script: 'npx',
       args: 'vite --port 3000 --host 0.0.0.0',
       cwd: '/home/user/webapp',

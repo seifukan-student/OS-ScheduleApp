@@ -68,7 +68,8 @@ const TaskRow: React.FC<{ task: WBSTask; projectId: string; depth?: number }> = 
 
   const toggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const next: TaskStatus = task.status === 'done' ? 'todo' : task.status === 'todo' ? 'in_progress' : 'done'
+    const cycle: Record<TaskStatus, TaskStatus> = { todo: 'in_progress', in_progress: 'done', done: 'todo', blocked: 'todo' }
+    const next: TaskStatus = cycle[task.status]
     dispatch({ type: 'UPDATE_TASK', payload: { projectId, task: { ...task, status: next, progress: next === 'done' ? 100 : task.progress } } })
   }
 

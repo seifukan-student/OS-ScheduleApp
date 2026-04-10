@@ -388,7 +388,7 @@ export const CreateModal: React.FC = () => {
         style={{
           position: 'fixed',
           inset: 0,
-          background: tokens.colors.overlay,
+          background: tokens.colors.bg.overlay,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

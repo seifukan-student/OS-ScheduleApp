@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Zap, Send, X, Minimize2, Maximize2, Paperclip, Mic,
-  Calendar, CheckSquare, ArrowRight, RefreshCw, Sparkles,
-  Bot, User, Clock
+  Zap, Send, X, Minimize2, Maximize2,
+  ArrowRight, RefreshCw, Sparkles,
+  User
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAppState } from '../store/AppContext'
@@ -196,7 +196,7 @@ export const AIChat: React.FC = () => {
       if (apiKey) {
         const calendarBlock = buildCalendarContextForAi(state.events, state.projects)
         const systemInstruction = [
-          'あなたは Lumina（カレンダー兼WBS）の日本語アシスタントです。',
+          'あなたは OS Calendar App（カレンダー兼WBS）の日本語アシスタントです。',
           'ユーザーの予定・タスクを尊重し、実践的な提案を短めに返答してください。マークダウン（見出し・箇条書き）を使ってよいです。',
           'キーやパスワードの要求はしません。',
           '',
@@ -294,7 +294,7 @@ export const AIChat: React.FC = () => {
             <Zap size={16} color="#fff" fill="#fff" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: tokens.colors.text.primary }}>Lumina AI</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: tokens.colors.text.primary }}>OS Calendar AI</div>
             <div style={{ fontSize: 11, color: aiLive ? tokens.colors.accent.green : tokens.colors.text.tertiary, display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: aiLive ? tokens.colors.accent.green : tokens.colors.text.tertiary }} />
               {aiLive ? 'Gemini 接続' : 'デモモード'}
@@ -342,7 +342,7 @@ export const AIChat: React.FC = () => {
                 >
                   <Sparkles size={24} color={tokens.colors.accent.blue} style={{ margin: '0 auto 8px' }} />
                   <div style={{ fontSize: 14, fontWeight: 600, color: tokens.colors.text.primary, marginBottom: 4 }}>
-                    Lumina AIへようこそ
+                    OS Calendar AIへようこそ
                   </div>
                   <div style={{ fontSize: 12, color: tokens.colors.text.tertiary }}>
                     設定で Gemini API キーを入れると会話が本番モードになります。未設定時はデモ応答です。
@@ -430,12 +430,6 @@ export const AIChat: React.FC = () => {
                     fontSize: 13,
                   }}
                 />
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: tokens.colors.text.tertiary, padding: 0 }}
-                >
-                  <Mic size={15} />
-                </motion.button>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}

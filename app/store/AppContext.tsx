@@ -73,6 +73,15 @@ const initialState: AppState = {
   selfMemberId: persisted?.selfMemberId ?? null,
 }
 
+function deriveProgress(tasks: WBSTask[]): number {
+  if (tasks.length === 0) return 0
+  return Math.round(tasks.reduce((s, t) => s + (t.status === 'done' ? 100 : t.progress), 0) / tasks.length)
+}
+
+function withProgress(p: WBSProject): WBSProject {
+  return { ...p, progress: deriveProgress(p.tasks) }
+}
+
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_VIEW':
@@ -100,12 +109,12 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         projects: state.projects.map(p =>
           p.id === action.payload.projectId
-            ? {
+            ? withProgress({
                 ...p,
                 tasks: p.tasks.map(t =>
                   t.id === action.payload.task.id ? action.payload.task : t
                 ),
-              }
+              })
             : p
         ),
       }
@@ -114,7 +123,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         projects: state.projects.map(p =>
           p.id === action.payload.projectId
-            ? { ...p, tasks: [...p.tasks, action.payload.task] }
+            ? withProgress({ ...p, tasks: [...p.tasks, action.payload.task] })
             : p
         ),
       }
@@ -123,7 +132,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         projects: state.projects.map(p =>
           p.id === action.payload.projectId
-            ? { ...p, tasks: p.tasks.filter(t => t.id !== action.payload.taskId) }
+            ? withProgress({ ...p, tasks: p.tasks.filter(t => t.id !== action.payload.taskId) })
             : p
         ),
       }

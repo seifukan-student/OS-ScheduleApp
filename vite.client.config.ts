@@ -18,7 +18,7 @@ export default defineConfig({
         entryFileNames: 'app/client.js',
         chunkFileNames: 'app/chunks/[name]-[hash].js',
         assetFileNames: 'app/assets/[name]-[hash][extname]',
-        name: 'LuminaApp',
+        name: 'OSCalendarApp',
         inlineDynamicImports: true,
       },
     },
