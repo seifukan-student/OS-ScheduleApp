@@ -16,6 +16,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { TeamPanel } from './components/TeamPanel'
 import { LoginPage } from './components/LoginPage'
+import { isSupabaseConfigured } from './lib/supabase'
 import { tokens } from './utils/design'
 
 const globalStyles = `
@@ -118,8 +119,63 @@ const AppInner: React.FC = () => {
   )
 }
 
+const SupabaseConfigMissing: React.FC = () => (
+  <div
+    style={{
+      width: '100vw',
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      background: tokens.colors.bg.primary,
+      color: tokens.colors.text.primary,
+    }}
+  >
+    <div
+      style={{
+        maxWidth: 520,
+        padding: 28,
+        borderRadius: 16,
+        background: tokens.colors.bg.secondary,
+        border: `1px solid ${tokens.colors.border.subtle}`,
+        boxShadow: tokens.shadow.lg,
+      }}
+    >
+      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Supabase の設定が必要です</h1>
+      <p style={{ fontSize: 14, color: tokens.colors.text.secondary, lineHeight: 1.6, marginBottom: 16 }}>
+        環境変数が空のままだと Supabase の SDK が起動時にエラーを投げ、画面が真っ白になります。プロジェクトルートに{' '}
+        <code style={{ fontSize: 13, background: tokens.colors.bg.tertiary, padding: '2px 6px', borderRadius: 4 }}>.env</code>
+        {' '}を置き、次を設定してください（値は Supabase ダッシュボードの Settings → API から）。
+      </p>
+      <pre
+        style={{
+          fontSize: 12,
+          padding: 14,
+          borderRadius: 10,
+          background: tokens.colors.bg.tertiary,
+          border: `1px solid ${tokens.colors.border.subtle}`,
+          overflow: 'auto',
+          marginBottom: 16,
+          lineHeight: 1.5,
+        }}
+      >
+        {`VITE_SUPABASE_URL=https://xxxx.supabase.co\nVITE_SUPABASE_ANON_KEY=eyJ...`}
+      </pre>
+      <p style={{ fontSize: 13, color: tokens.colors.text.secondary, lineHeight: 1.55 }}>
+        データベースは SQL Editor で <code style={{ fontSize: 12, background: tokens.colors.bg.tertiary, padding: '2px 6px', borderRadius: 4 }}>supabase/migration.sql</code>{' '}
+        を実行してテーブルを作成し、Authentication で Google プロバイダーを有効化してください。設定後にページを再読み込みします。
+      </p>
+    </div>
+  </div>
+)
+
 const AuthGate: React.FC = () => {
   const { user, loading } = useAuth()
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseConfigMissing />
+  }
 
   if (loading) {
     return (

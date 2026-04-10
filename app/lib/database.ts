@@ -1,6 +1,11 @@
 import { supabase } from './supabase'
-import type { CalendarEvent, WBSProject, WBSTask, ChatMessage, TeamMember, TeamProgressReport } from '../types'
-import type { UserSettings } from '../types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { CalendarEvent, WBSProject, WBSTask, TeamMember, UserSettings } from '../types'
+
+function sb(): SupabaseClient {
+  if (!supabase) throw new Error('Supabase が未設定です（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）')
+  return supabase
+}
 
 /* ──────────────────────── helpers ──────────────────────── */
 
@@ -54,7 +59,7 @@ function rowToEvent(r: EventRow): CalendarEvent {
 }
 
 export async function fetchEvents(userId: string): Promise<CalendarEvent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await sb()
     .from('events')
     .select('*')
     .eq('user_id', userId)
@@ -81,12 +86,12 @@ export async function upsertEvent(userId: string, e: CalendarEvent) {
     tags: e.tags ?? null,
     priority: e.priority,
   }
-  const { error } = await supabase.from('events').upsert(row, { onConflict: 'id' })
+  const { error } = await sb().from('events').upsert(row, { onConflict: 'id' })
   if (error) throw error
 }
 
 export async function deleteEvent(eventId: string) {
-  const { error } = await supabase.from('events').delete().eq('id', eventId)
+  const { error } = await sb().from('events').delete().eq('id', eventId)
   if (error) throw error
 }
 
@@ -167,28 +172,31 @@ function rowToTask(r: TaskRow): WBSTask {
 }
 
 export async function fetchProjects(userId: string): Promise<WBSProject[]> {
-  const { data: projRows, error: pe } = await supabase
+  const { data: projRows, error: pe } = await sb()
     .from('projects')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
   if (pe) throw pe
 
-  const { data: taskRows, error: te } = await supabase
+  const projList = projRows ?? []
+  if (projList.length === 0) return []
+
+  const { data: taskRows, error: te } = await sb()
     .from('tasks')
     .select('*')
-    .in('project_id', (projRows ?? []).map(p => p.id))
+    .in('project_id', projList.map(p => p.id))
     .order('sort_order', { ascending: true })
   if (te) throw te
 
   const tasksByProject = new Map<string, WBSTask[]>()
-  for (const t of (taskRows ?? [])) {
+  for (const t of taskRows ?? []) {
     const list = tasksByProject.get(t.project_id) ?? []
     list.push(rowToTask(t))
     tasksByProject.set(t.project_id, list)
   }
 
-  return (projRows ?? []).map(r => rowToProject(r, tasksByProject.get(r.id) ?? []))
+  return projList.map(r => rowToProject(r, tasksByProject.get(r.id) ?? []))
 }
 
 export async function upsertProject(userId: string, p: WBSProject) {
@@ -204,13 +212,13 @@ export async function upsertProject(userId: string, p: WBSProject) {
     due_date: toIso(p.dueDate),
     progress: p.progress,
   }
-  const { error } = await supabase.from('projects').upsert(row, { onConflict: 'id' })
+  const { error } = await sb().from('projects').upsert(row, { onConflict: 'id' })
   if (error) throw error
 }
 
 export async function deleteProject(projectId: string) {
-  await supabase.from('tasks').delete().eq('project_id', projectId)
-  const { error } = await supabase.from('projects').delete().eq('id', projectId)
+  await sb().from('tasks').delete().eq('project_id', projectId)
+  const { error } = await sb().from('projects').delete().eq('id', projectId)
   if (error) throw error
 }
 
@@ -237,19 +245,19 @@ export async function upsertTask(projectId: string, t: WBSTask, sortOrder: numbe
     notes: t.notes ?? null,
     sort_order: sortOrder,
   }
-  const { error } = await supabase.from('tasks').upsert(row, { onConflict: 'id' })
+  const { error } = await sb().from('tasks').upsert(row, { onConflict: 'id' })
   if (error) throw error
 }
 
 export async function deleteTask(taskId: string) {
-  const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+  const { error } = await sb().from('tasks').delete().eq('id', taskId)
   if (error) throw error
 }
 
 /* ──────────────────────── User Settings ──────────────────────── */
 
 export async function fetchUserSettings(userId: string): Promise<UserSettings | null> {
-  const { data, error } = await supabase
+  const { data, error } = await sb()
     .from('user_settings')
     .select('*')
     .eq('user_id', userId)
@@ -276,26 +284,26 @@ export async function saveUserSettings(userId: string, s: UserSettings) {
     notifications_enabled: s.notificationsEnabled,
     gemini_api_key: s.geminiApiKey,
   }
-  const { error } = await supabase.from('user_settings').upsert(row, { onConflict: 'user_id' })
+  const { error } = await sb().from('user_settings').upsert(row, { onConflict: 'user_id' })
   if (error) throw error
 }
 
 /* ──────────────────────── Team Members ──────────────────────── */
 
 export async function fetchTeamMembers(userId: string): Promise<TeamMember[]> {
-  const { data, error } = await supabase.from('team_members').select('*').eq('user_id', userId)
+  const { data, error } = await sb().from('team_members').select('*').eq('user_id', userId)
   if (error) throw error
   return (data ?? []).map(r => ({ id: r.id, name: r.name, role: r.role ?? undefined }))
 }
 
 export async function upsertTeamMember(userId: string, m: TeamMember) {
-  const { error } = await supabase.from('team_members').upsert({
+  const { error } = await sb().from('team_members').upsert({
     id: m.id, user_id: userId, name: m.name, role: m.role ?? null,
   }, { onConflict: 'id' })
   if (error) throw error
 }
 
 export async function deleteTeamMember(memberId: string) {
-  const { error } = await supabase.from('team_members').delete().eq('id', memberId)
+  const { error } = await sb().from('team_members').delete().eq('id', memberId)
   if (error) throw error
 }

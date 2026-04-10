@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
 export type AppUser = {
@@ -33,10 +33,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ? toAppUser(session.user) : null)
+    if (!isSupabaseConfigured || !supabase) {
+      setUser(null)
       setLoading(false)
-    })
+      return
+    }
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ? toAppUser(session.user) : null)
+        setLoading(false)
+      })
+      .catch(() => {
+        setUser(null)
+        setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event: string, session: Session | null) => {
@@ -48,6 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const signInWithGoogle = useCallback(async () => {
+    if (!supabase) return
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
@@ -55,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut()
+    if (supabase) await supabase.auth.signOut()
     setUser(null)
   }, [])
 
