@@ -91,6 +91,15 @@ export interface TeamProgressReport {
   at: Date
 }
 
+export interface UserSettings {
+  displayName: string
+  theme: 'light' | 'dark'
+  weekStartsOn: 0 | 1
+  defaultView: ViewMode
+  notificationsEnabled: boolean
+  geminiApiKey: string
+}
+
 export interface AppState {
   currentDate: Date
   viewMode: ViewMode

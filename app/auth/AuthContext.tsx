@@ -1,82 +1,67 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
+import { supabase } from '../lib/supabase'
+import type { User, Session } from '@supabase/supabase-js'
 
-const STORAGE_KEY = 'lumina_google_user_v1'
-
-export type GoogleUser = {
-  sub: string
+export type AppUser = {
+  id: string
   email?: string
   name?: string
   picture?: string
 }
 
-function decodeCredentialJwt(credential: string): Partial<GoogleUser> {
-  try {
-    const part = credential.split('.')[1]
-    if (!part) return {}
-    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'))
-    const p = JSON.parse(json) as Record<string, unknown>
-    return {
-      sub: typeof p.sub === 'string' ? p.sub : '',
-      email: typeof p.email === 'string' ? p.email : undefined,
-      name: typeof p.name === 'string' ? p.name : undefined,
-      picture: typeof p.picture === 'string' ? p.picture : undefined,
-    }
-  } catch {
-    return {}
+function toAppUser(u: User): AppUser {
+  const meta = u.user_metadata ?? {}
+  return {
+    id: u.id,
+    email: u.email ?? (meta.email as string | undefined),
+    name: (meta.full_name ?? meta.name ?? meta.display_name) as string | undefined,
+    picture: (meta.avatar_url ?? meta.picture) as string | undefined,
   }
 }
 
 type AuthContextValue = {
-  user: GoogleUser | null
-  setUserFromCredential: (credential: string) => void
-  logout: () => void
+  user: AppUser | null
+  loading: boolean
+  signInWithGoogle: () => Promise<void>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<GoogleUser | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return
-      const p = JSON.parse(raw) as GoogleUser
-      if (p?.sub) setUser(p)
-    } catch {
-      /* ignore */
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? toAppUser(session.user) : null)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event: string, session: Session | null) => {
+        setUser(session?.user ? toAppUser(session.user) : null)
+        setLoading(false)
+      },
+    )
+    return () => subscription.unsubscribe()
   }, [])
 
-  const setUserFromCredential = useCallback((credential: string) => {
-    const decoded = decodeCredentialJwt(credential)
-    if (!decoded.sub) return
-    const next: GoogleUser = {
-      sub: decoded.sub,
-      email: decoded.email,
-      name: decoded.name,
-      picture: decoded.picture,
-    }
-    setUser(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    } catch {
-      /* ignore */
-    }
+  const signInWithGoogle = useCallback(async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut()
     setUser(null)
-    try {
-      localStorage.removeItem(STORAGE_KEY)
-    } catch {
-      /* ignore */
-    }
   }, [])
 
   const value = useMemo(
-    () => ({ user, setUserFromCredential, logout }),
-    [user, setUserFromCredential, logout]
+    () => ({ user, loading, signInWithGoogle, logout }),
+    [user, loading, signInWithGoogle, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

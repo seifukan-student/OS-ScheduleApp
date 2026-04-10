@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useRef, useCallback } from 'react'
 import {
   AppState,
   CalendarEvent,
@@ -9,8 +9,21 @@ import {
   TeamMember,
   TeamProgressReport,
 } from '../types'
-import { generateMockEvents, generateMockProjects, generateMockMessages } from '../utils/mockData'
-import { loadPersistedAppData, savePersistedAppData, clearPersistedAppData } from '../utils/persistState'
+import { generateMockMessages } from '../utils/mockData'
+import { useAuth } from '../auth/AuthContext'
+import {
+  fetchEvents,
+  fetchProjects,
+  fetchTeamMembers,
+  upsertEvent,
+  deleteEvent as dbDeleteEvent,
+  upsertProject,
+  deleteProject as dbDeleteProject,
+  upsertTask,
+  deleteTask as dbDeleteTask,
+  upsertTeamMember,
+  deleteTeamMember as dbDeleteTeamMember,
+} from '../lib/database'
 
 type Action =
   | { type: 'SET_VIEW'; payload: ViewMode }
@@ -45,9 +58,7 @@ type Action =
   | { type: 'DELETE_TEAM_MEMBER'; payload: string }
   | { type: 'SET_SELF_MEMBER_ID'; payload: string | null }
   | { type: 'ADD_TEAM_PROGRESS_REPORT'; payload: TeamProgressReport }
-
-const persisted =
-  typeof window !== 'undefined' ? loadPersistedAppData() : null
+  | { type: 'LOAD_REMOTE_DATA'; payload: { events: CalendarEvent[]; projects: WBSProject[]; teamMembers: TeamMember[] } }
 
 const initialState: AppState = {
   currentDate: new Date(),
@@ -56,9 +67,9 @@ const initialState: AppState = {
   selectedProjectId: null,
   sidebarOpen: true,
   chatOpen: false,
-  events: persisted?.events ?? generateMockEvents(),
-  projects: persisted?.projects ?? generateMockProjects(),
-  chatMessages: persisted !== null ? persisted.chatMessages : generateMockMessages(),
+  events: [],
+  projects: [],
+  chatMessages: generateMockMessages(),
   activePanel: 'both',
   createModalOpen: false,
   createModalMode: 'choice',
@@ -68,9 +79,9 @@ const initialState: AppState = {
   notificationsOpen: false,
   settingsOpen: false,
   editingEventId: null,
-  teamMembers: persisted?.teamMembers ?? [],
-  teamProgressReports: persisted?.teamProgressReports ?? [],
-  selfMemberId: persisted?.selfMemberId ?? null,
+  teamMembers: [],
+  teamProgressReports: [],
+  selfMemberId: null,
 }
 
 function deriveProgress(tasks: WBSTask[]): number {
@@ -84,6 +95,8 @@ function withProgress(p: WBSProject): WBSProject {
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'LOAD_REMOTE_DATA':
+      return { ...state, events: action.payload.events, projects: action.payload.projects, teamMembers: action.payload.teamMembers }
     case 'SET_VIEW':
       return { ...state, viewMode: action.payload }
     case 'SET_DATE':
@@ -109,12 +122,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         projects: state.projects.map(p =>
           p.id === action.payload.projectId
-            ? withProgress({
-                ...p,
-                tasks: p.tasks.map(t =>
-                  t.id === action.payload.task.id ? action.payload.task : t
-                ),
-              })
+            ? withProgress({ ...p, tasks: p.tasks.map(t => t.id === action.payload.task.id ? action.payload.task : t) })
             : p
         ),
       }
@@ -137,10 +145,7 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       }
     case 'UPDATE_PROJECT':
-      return {
-        ...state,
-        projects: state.projects.map(p => (p.id === action.payload.id ? action.payload : p)),
-      }
+      return { ...state, projects: state.projects.map(p => (p.id === action.payload.id ? action.payload : p)) }
     case 'DELETE_PROJECT': {
       const id = action.payload
       return {
@@ -157,16 +162,11 @@ function reducer(state: AppState, action: Action): AppState {
         selectedEventId: state.selectedEventId === action.payload ? null : state.selectedEventId,
       }
     case 'UPDATE_EVENT':
-      return {
-        ...state,
-        events: state.events.map(e => (e.id === action.payload.id ? action.payload : e)),
-        editingEventId: null,
-      }
+      return { ...state, events: state.events.map(e => (e.id === action.payload.id ? action.payload : e)), editingEventId: null }
     case 'OPEN_CREATE_MODAL': {
       const p = action.payload
       return {
-        ...state,
-        createModalOpen: true,
+        ...state, createModalOpen: true,
         createModalMode: p?.mode ?? 'choice',
         createModalPreselectedEventId: p?.preselectedEventId ?? null,
         editingEventId: p?.editingEventId !== undefined ? p.editingEventId : null,
@@ -174,14 +174,7 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
     case 'CLOSE_CREATE_MODAL':
-      return {
-        ...state,
-        createModalOpen: false,
-        createModalMode: 'choice',
-        createModalPreselectedEventId: null,
-        editingEventId: null,
-        createModalInitialDateTime: null,
-      }
+      return { ...state, createModalOpen: false, createModalMode: 'choice', createModalPreselectedEventId: null, editingEventId: null, createModalInitialDateTime: null }
     case 'OPEN_SEARCH':
       return { ...state, searchOpen: true }
     case 'CLOSE_SEARCH':
@@ -207,16 +200,13 @@ function reducer(state: AppState, action: Action): AppState {
           ...p,
           tasks: p.tasks.map(t => {
             if (!t.assignee) return t
-            if (t.assignee === prev.name || t.assignee === prev.id) {
-              return { ...t, assignee: nextName }
-            }
+            if (t.assignee === prev.name || t.assignee === prev.id) return { ...t, assignee: nextName }
             return t
           }),
         }))
       }
       return {
-        ...state,
-        projects,
+        ...state, projects,
         teamMembers: state.teamMembers.map(m => (m.id === action.payload.id ? action.payload : m)),
         selfMemberId: state.selfMemberId === action.payload.id ? action.payload.id : state.selfMemberId,
       }
@@ -224,16 +214,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'DELETE_TEAM_MEMBER': {
       const m = state.teamMembers.find(x => x.id === action.payload)
       const projects = m
-        ? state.projects.map(p => ({
-            ...p,
-            tasks: p.tasks.map(t => {
-              if (!t.assignee) return t
-              if (t.assignee === m.name || t.assignee === m.id) {
-                return { ...t, assignee: undefined }
-              }
-              return t
-            }),
-          }))
+        ? state.projects.map(p => ({ ...p, tasks: p.tasks.map(t => (!t.assignee ? t : (t.assignee === m.name || t.assignee === m.id) ? { ...t, assignee: undefined } : t)) }))
         : state.projects
       return {
         ...state,
@@ -246,23 +227,9 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_SELF_MEMBER_ID':
       return { ...state, selfMemberId: action.payload }
     case 'ADD_TEAM_PROGRESS_REPORT':
-      return {
-        ...state,
-        teamProgressReports: [action.payload, ...state.teamProgressReports].slice(0, 200),
-      }
+      return { ...state, teamProgressReports: [action.payload, ...state.teamProgressReports].slice(0, 200) }
     case 'RESET_TO_DEMO_DATA':
-      clearPersistedAppData()
-      return {
-        ...state,
-        events: generateMockEvents(),
-        projects: generateMockProjects(),
-        chatMessages: generateMockMessages(),
-        selectedEventId: null,
-        selectedProjectId: null,
-        teamMembers: [],
-        teamProgressReports: [],
-        selfMemberId: null,
-      }
+      return { ...state, events: [], projects: [], chatMessages: generateMockMessages(), selectedEventId: null, selectedProjectId: null, teamMembers: [], teamProgressReports: [], selfMemberId: null }
     default:
       return state
   }
@@ -274,25 +241,71 @@ const AppContext = createContext<{
 } | null>(null)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(reducer, initialState)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { user } = useAuth()
+  const [state, rawDispatch] = useReducer(reducer, initialState)
+  const userId = user?.id
+  const loadedRef = useRef(false)
 
   useEffect(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      savePersistedAppData({
-        events: state.events,
-        projects: state.projects,
-        chatMessages: state.chatMessages,
-        teamMembers: state.teamMembers,
-        teamProgressReports: state.teamProgressReports,
-        selfMemberId: state.selfMemberId,
-      })
-    }, 400)
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (!userId || loadedRef.current) return
+    loadedRef.current = true
+    ;(async () => {
+      try {
+        const [events, projects, teamMembers] = await Promise.all([
+          fetchEvents(userId),
+          fetchProjects(userId),
+          fetchTeamMembers(userId),
+        ])
+        rawDispatch({ type: 'LOAD_REMOTE_DATA', payload: { events, projects, teamMembers } })
+      } catch (err) {
+        console.error('[db] initial load failed', err)
+      }
+    })()
+  }, [userId])
+
+  const dispatch = useCallback((action: Action) => {
+    rawDispatch(action)
+    if (!userId) return
+
+    // fire-and-forget DB sync
+    switch (action.type) {
+      case 'ADD_EVENT':
+      case 'UPDATE_EVENT':
+        upsertEvent(userId, action.payload).catch(e => console.error('[db]', e))
+        break
+      case 'REMOVE_EVENT':
+        dbDeleteEvent(action.payload).catch(e => console.error('[db]', e))
+        break
+      case 'ADD_PROJECT':
+        upsertProject(userId, action.payload).catch(e => console.error('[db]', e))
+        action.payload.tasks.forEach((t, i) => upsertTask(action.payload.id, t, i).catch(e => console.error('[db]', e)))
+        break
+      case 'UPDATE_PROJECT':
+        upsertProject(userId, action.payload).catch(e => console.error('[db]', e))
+        break
+      case 'DELETE_PROJECT':
+        dbDeleteProject(action.payload).catch(e => console.error('[db]', e))
+        break
+      case 'ADD_TASK':
+        upsertTask(action.payload.projectId, action.payload.task, Date.now()).catch(e => console.error('[db]', e))
+        break
+      case 'UPDATE_TASK':
+        upsertTask(action.payload.projectId, action.payload.task, Date.now()).catch(e => console.error('[db]', e))
+        break
+      case 'DELETE_TASK':
+        dbDeleteTask(action.payload.taskId).catch(e => console.error('[db]', e))
+        break
+      case 'ADD_TEAM_MEMBER':
+        upsertTeamMember(userId, action.payload).catch(e => console.error('[db]', e))
+        break
+      case 'UPDATE_TEAM_MEMBER':
+        upsertTeamMember(userId, action.payload).catch(e => console.error('[db]', e))
+        break
+      case 'DELETE_TEAM_MEMBER':
+        dbDeleteTeamMember(action.payload).catch(e => console.error('[db]', e))
+        break
     }
-  }, [state.events, state.projects, state.chatMessages, state.teamMembers, state.teamProgressReports, state.selfMemberId])
+  }, [userId])
 
   return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
 }

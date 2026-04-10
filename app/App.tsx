@@ -1,8 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AppProvider, useAppState } from './store/AppContext'
-import { AuthProvider } from './auth/AuthContext'
+import { AuthProvider, useAuth } from './auth/AuthContext'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { DashboardStrip } from './components/DashboardStrip'
@@ -16,6 +15,7 @@ import { NotificationsPanel } from './components/NotificationsPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { TeamPanel } from './components/TeamPanel'
+import { LoginPage } from './components/LoginPage'
 import { tokens } from './utils/design'
 
 const globalStyles = `
@@ -70,28 +70,16 @@ const MainContent: React.FC = () => {
   const { state } = useAppState()
 
   return (
-    <div style={{
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      minWidth: 0,
-    }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
       <TopBar />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {state.activePanel === 'analytics' && <AnalyticsPanel />}
         {state.activePanel === 'team' && <TeamPanel />}
 
-        {(state.activePanel === 'calendar' || state.activePanel === 'both') && (
-          <CalendarPanel />
-        )}
+        {(state.activePanel === 'calendar' || state.activePanel === 'both') && <CalendarPanel />}
 
         {state.activePanel === 'both' && (
-          <div style={{
-            width: 1,
-            background: tokens.colors.border.subtle,
-            flexShrink: 0,
-          }} />
+          <div style={{ width: 1, background: tokens.colors.border.subtle, flexShrink: 0 }} />
         )}
 
         {(state.activePanel === 'wbs' || state.activePanel === 'both') && (
@@ -110,7 +98,6 @@ const MainContent: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Event Detail Sidebar */}
         <EventDetailPanel />
       </div>
     </div>
@@ -119,13 +106,7 @@ const MainContent: React.FC = () => {
 
 const AppInner: React.FC = () => {
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      background: tokens.colors.bg.primary,
-      overflow: 'hidden',
-    }}>
+    <div style={{ width: '100vw', height: '100vh', display: 'flex', background: tokens.colors.bg.primary, overflow: 'hidden' }}>
       <Sidebar />
       <MainContent />
       <AIChat />
@@ -137,24 +118,37 @@ const AppInner: React.FC = () => {
   )
 }
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+const AuthGate: React.FC = () => {
+  const { user, loading } = useAuth()
 
-const GoogleAuthShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (!googleClientId?.trim()) return <>{children}</>
-  return <GoogleOAuthProvider clientId={googleClientId.trim()}>{children}</GoogleOAuthProvider>
+  if (loading) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: tokens.colors.bg.primary }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+          style={{ width: 32, height: 32, border: `3px solid ${tokens.colors.border.default}`, borderTopColor: tokens.colors.accent.blue, borderRadius: '50%' }}
+        />
+      </div>
+    )
+  }
+
+  if (!user) return <LoginPage />
+
+  return (
+    <AppProvider>
+      <AppInner />
+    </AppProvider>
+  )
 }
 
 export const App: React.FC = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
-      <AppProvider>
-        <AuthProvider>
-          <GoogleAuthShell>
-            <AppInner />
-          </GoogleAuthShell>
-        </AuthProvider>
-      </AppProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
     </>
   )
 }
