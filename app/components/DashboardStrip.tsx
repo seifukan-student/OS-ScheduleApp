@@ -4,6 +4,7 @@ import { format, isToday } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { Clock, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
 import { useAppState } from '../store/AppContext'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 import { tokens } from '../utils/design'
 
 const CircularProgress: React.FC<{ value: number; color: string; size?: number }> = ({
@@ -31,6 +32,7 @@ const CircularProgress: React.FC<{ value: number; color: string; size?: number }
 
 export const DashboardStrip: React.FC = () => {
   const { state } = useAppState()
+  const isMobile = useBreakpoint(768)
 
   const todayEvents = state.events.filter(e => isToday(e.start)).length
   const totalTasks = state.projects.reduce((a, p) => a + p.tasks.length, 0)
@@ -83,7 +85,7 @@ export const DashboardStrip: React.FC = () => {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
+      gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
       gap: 1,
       background: tokens.colors.border.subtle,
       borderBottom: `1px solid ${tokens.colors.border.subtle}`,

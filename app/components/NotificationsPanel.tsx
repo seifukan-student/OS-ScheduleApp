@@ -44,8 +44,10 @@ export const NotificationsPanel: React.FC = () => {
           style={{
             position: 'absolute',
             top: 64,
-            right: 20,
-            width: 360,
+            right: 8,
+            left: 8,
+            maxWidth: 360,
+            marginLeft: 'auto',
             maxHeight: 400,
             background: tokens.colors.bg.secondary,
             borderRadius: 14,

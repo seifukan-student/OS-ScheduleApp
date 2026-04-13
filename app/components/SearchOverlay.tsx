@@ -45,7 +45,9 @@ export const SearchOverlay: React.FC = () => {
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
-          paddingTop: 120,
+          paddingTop: 'max(80px, env(safe-area-inset-top, 0px) + 16px)',
+          paddingLeft: 16,
+          paddingRight: 16,
         }}
       >
         <motion.div
@@ -62,6 +64,7 @@ export const SearchOverlay: React.FC = () => {
             boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
             overflow: 'hidden',
           }}
+
         >
           <div style={{ padding: 12, borderBottom: `1px solid ${tokens.colors.border.subtle}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <Search size={18} color={tokens.colors.text.tertiary} />
@@ -88,7 +91,7 @@ export const SearchOverlay: React.FC = () => {
               <X size={18} />
             </motion.button>
           </div>
-          <div style={{ maxHeight: 320, overflowY: 'auto' }} className="custom-scrollbar">
+          <div style={{ maxHeight: 'min(320px, 50dvh)', overflowY: 'auto' }} className="custom-scrollbar">
             {filtered.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: tokens.colors.text.tertiary, fontSize: 13 }}>該当する予定がありません</div>
             ) : (

@@ -2,12 +2,13 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight,
-  Search, Menu, Bell, Zap
+  Search, Menu, Bell, Zap, Settings,
 } from 'lucide-react'
 import { format, addWeeks, subWeeks, addMonths, subMonths, addDays, subDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { useAppState } from '../store/AppContext'
 import { useAuth } from '../auth/AuthContext'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 import { tokens } from '../utils/design'
 import { ViewMode } from '../types'
 
@@ -21,6 +22,7 @@ const viewButtons: { mode: ViewMode; label: string }[] = [
 export const TopBar: React.FC = () => {
   const { state, dispatch } = useAppState()
   const { user } = useAuth()
+  const isMobile = useBreakpoint(768)
 
   const navigate = (dir: 1 | -1) => {
     const d = state.currentDate
@@ -30,6 +32,14 @@ export const TopBar: React.FC = () => {
   }
 
   const getTitle = () => {
+    if (isMobile) {
+      if (state.viewMode === 'month') return format(state.currentDate, 'yyyy年M月', { locale: ja })
+      if (state.viewMode === 'week') {
+        const start = addDays(state.currentDate, -(state.currentDate.getDay() || 7) + 1)
+        return format(start, 'M/d', { locale: ja }) + '週'
+      }
+      return format(state.currentDate, 'M月d日(E)', { locale: ja })
+    }
     if (state.viewMode === 'month') return format(state.currentDate, 'yyyy年 MMMM', { locale: ja })
     if (state.viewMode === 'week') {
       const start = addDays(state.currentDate, -(state.currentDate.getDay() || 7) + 1)
@@ -39,6 +49,67 @@ export const TopBar: React.FC = () => {
     return format(state.currentDate, 'yyyy年M月d日(E)', { locale: ja })
   }
 
+  if (isMobile) {
+    return (
+      <header style={{
+        height: 52,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 8px',
+        gap: 4,
+        borderBottom: `1px solid ${tokens.colors.border.subtle}`,
+        background: tokens.colors.bg.secondary,
+        flexShrink: 0,
+        paddingTop: 'env(safe-area-inset-top)',
+      }}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+          style={{ padding: 10, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.colors.text.secondary, cursor: 'pointer' }}>
+          <Menu size={20} />
+        </motion.button>
+
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
+          style={{ padding: 8, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.colors.text.secondary, cursor: 'pointer' }}>
+          <ChevronLeft size={20} />
+        </motion.button>
+
+        <motion.h1 key={getTitle()} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 15, fontWeight: 700, color: tokens.colors.text.primary, flex: 1, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {getTitle()}
+        </motion.h1>
+
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(1)}
+          style={{ padding: 8, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.colors.text.secondary, cursor: 'pointer' }}>
+          <ChevronRight size={20} />
+        </motion.button>
+
+        {/* View switcher pill (compact) */}
+        <div style={{ display: 'flex', background: tokens.colors.bg.tertiary, borderRadius: 8, padding: 2, gap: 1, border: `1px solid ${tokens.colors.border.subtle}` }}>
+          {viewButtons.map(({ mode, label }) => (
+            <motion.button key={mode} whileTap={{ scale: 0.9 }} onClick={() => dispatch({ type: 'SET_VIEW', payload: mode })}
+              style={{ padding: '4px 7px', borderRadius: 6, border: 'none', background: state.viewMode === mode ? tokens.colors.bg.card : 'transparent', color: state.viewMode === mode ? tokens.colors.text.primary : tokens.colors.text.tertiary, cursor: 'pointer', fontSize: 11, fontWeight: state.viewMode === mode ? 700 : 400, boxShadow: state.viewMode === mode ? tokens.shadow.sm : 'none' }}>
+              {label}
+            </motion.button>
+          ))}
+        </div>
+
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => dispatch({ type: 'OPEN_SEARCH' })}
+          style={{ padding: 10, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.colors.text.secondary, cursor: 'pointer' }}>
+          <Search size={20} />
+        </motion.button>
+
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => dispatch({ type: 'OPEN_SETTINGS' })}
+          style={{ padding: 10, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.colors.text.secondary, cursor: 'pointer' }}>
+          {user?.picture ? (
+            <img src={user.picture} alt="" width={26} height={26} style={{ borderRadius: '50%' }} />
+          ) : (
+            <Settings size={20} />
+          )}
+        </motion.button>
+      </header>
+    )
+  }
+
+  // Desktop TopBar
   return (
     <header style={{
       height: 60, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12,
@@ -72,7 +143,6 @@ export const TopBar: React.FC = () => {
 
       <div style={{ flex: 1 }} />
 
-      {/* User avatar */}
       {user && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, cursor: 'pointer' }}
           onClick={() => dispatch({ type: 'OPEN_SETTINGS' })}>
@@ -89,23 +159,15 @@ export const TopBar: React.FC = () => {
         </div>
       )}
 
-      {/* View Mode Switcher */}
       <div style={{ display: 'flex', background: tokens.colors.bg.tertiary, borderRadius: 10, padding: 3, gap: 2, border: `1px solid ${tokens.colors.border.subtle}` }}>
         {viewButtons.map(({ mode, label }) => (
           <motion.button key={mode} whileTap={{ scale: 0.96 }} onClick={() => dispatch({ type: 'SET_VIEW', payload: mode })}
-            style={{
-              padding: '5px 12px', borderRadius: 7, border: 'none',
-              background: state.viewMode === mode ? tokens.colors.bg.card : 'transparent',
-              color: state.viewMode === mode ? tokens.colors.text.primary : tokens.colors.text.tertiary,
-              cursor: 'pointer', fontSize: 12, fontWeight: state.viewMode === mode ? 600 : 400,
-              transition: 'all 0.15s ease', boxShadow: state.viewMode === mode ? tokens.shadow.sm : 'none',
-            }}>
+            style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: state.viewMode === mode ? tokens.colors.bg.card : 'transparent', color: state.viewMode === mode ? tokens.colors.text.primary : tokens.colors.text.tertiary, cursor: 'pointer', fontSize: 12, fontWeight: state.viewMode === mode ? 600 : 400, transition: 'all 0.15s ease', boxShadow: state.viewMode === mode ? tokens.shadow.sm : 'none' }}>
             {label}
           </motion.button>
         ))}
       </div>
 
-      {/* Search */}
       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => dispatch({ type: 'OPEN_SEARCH' })}
         style={{ display: 'flex', alignItems: 'center', gap: 8, background: tokens.colors.bg.tertiary, border: `1px solid ${tokens.colors.border.subtle}`, borderRadius: 10, padding: '6px 12px', width: 200, cursor: 'pointer' }}>
         <Search size={14} color={tokens.colors.text.tertiary} />
@@ -114,12 +176,7 @@ export const TopBar: React.FC = () => {
       </motion.button>
 
       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatch({ type: 'TOGGLE_CHAT' })}
-        style={{
-          padding: '8px 14px', borderRadius: 10,
-          background: state.chatOpen ? 'linear-gradient(135deg, #3B82F6, #6366F1)' : tokens.colors.bg.card,
-          color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600,
-          boxShadow: state.chatOpen ? tokens.shadow.sm : 'none', border: state.chatOpen ? '1px solid transparent' : `1px solid ${tokens.colors.border.default}`,
-        }}>
+        style={{ padding: '8px 14px', borderRadius: 10, background: state.chatOpen ? 'linear-gradient(135deg, #3B82F6, #6366F1)' : tokens.colors.bg.card, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, boxShadow: state.chatOpen ? tokens.shadow.sm : 'none', border: state.chatOpen ? '1px solid transparent' : `1px solid ${tokens.colors.border.default}` }}>
         <Zap size={14} /> AI
       </motion.button>
 

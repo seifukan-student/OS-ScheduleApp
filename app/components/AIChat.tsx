@@ -10,6 +10,7 @@ import { useAppState } from '../store/AppContext'
 import { ChatMessage, ChatAction } from '../types'
 import { tokens } from '../utils/design'
 import { getGeminiApiKey, isGeminiConfigured } from '../utils/aiConfig'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 import { buildCalendarContextForAi } from '../utils/buildAiContext'
 import { getDemoAIResponse } from '../utils/demoAiResponses'
 import { geminiChat, chatMessagesToGeminiContents } from '../services/geminiClient'
@@ -139,6 +140,7 @@ const SUGGESTIONS = [
 
 export const AIChat: React.FC = () => {
   const { state, dispatch } = useAppState()
+  const isMobile = useBreakpoint(768)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [minimized, setMinimized] = useState(false)
@@ -248,22 +250,26 @@ export const AIChat: React.FC = () => {
 
   if (!state.chatOpen) return null
 
-  /** イベント詳細パネル（幅 360px）と重ならないよう右オフセット（削除ボタンが押せなくなるのを防ぐ） */
-  const chatRight = state.selectedEventId ? 384 : 20
+  const chatRight = isMobile ? 8 : (state.selectedEventId ? 384 : 20)
+  const chatWidth = isMobile ? 'calc(100vw - 16px)' : 380
+  const chatHeight = isMobile
+    ? (minimized ? 52 : 'calc(85dvh - env(safe-area-inset-bottom))')
+    : (minimized ? 60 : 580)
+  const chatBottom = isMobile ? 'calc(64px + env(safe-area-inset-bottom))' : 20
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, x: 40, scale: 0.95 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        exit={{ opacity: 0, x: 40, scale: 0.95 }}
+        initial={{ opacity: 0, y: 40, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 40, scale: 0.95 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         style={{
           position: 'fixed',
           right: chatRight,
-          bottom: 20,
-          width: 380,
-          height: minimized ? 60 : 580,
+          bottom: chatBottom,
+          width: chatWidth,
+          height: chatHeight,
           borderRadius: 20,
           background: tokens.colors.bg.secondary,
           border: `1px solid ${tokens.colors.border.default}`,

@@ -16,7 +16,9 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { TeamPanel } from './components/TeamPanel'
 import { LoginPage } from './components/LoginPage'
+import { BottomNav } from './components/BottomNav'
 import { isSupabaseConfigured } from './lib/supabase'
+import { useBreakpoint } from './hooks/useBreakpoint'
 import { tokens } from './utils/design'
 
 const globalStyles = `
@@ -40,6 +42,16 @@ const globalStyles = `
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
+  }
+  /* Mobile: CreateModal as bottom sheet */
+  @media (max-width: 767px) {
+    .create-modal-backdrop {
+      align-items: flex-end !important;
+    }
+    .create-modal-card {
+      border-radius: 20px 20px 0 0 !important;
+      max-height: 92dvh !important;
+    }
   }
 `
 
@@ -69,26 +81,37 @@ const CalendarPanel: React.FC = () => {
 
 const MainContent: React.FC = () => {
   const { state } = useAppState()
+  const isMobile = useBreakpoint(768)
+
+  // On mobile, never split. Also don't show "both" panel – just calendar.
+  const effectivePanel = isMobile && state.activePanel === 'both' ? 'calendar' : state.activePanel
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      minWidth: 0,
+      paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 0,
+    }}>
       <TopBar />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {state.activePanel === 'analytics' && <AnalyticsPanel />}
-        {state.activePanel === 'team' && <TeamPanel />}
+        {effectivePanel === 'analytics' && <AnalyticsPanel />}
+        {effectivePanel === 'team' && <TeamPanel />}
 
-        {(state.activePanel === 'calendar' || state.activePanel === 'both') && <CalendarPanel />}
+        {(effectivePanel === 'calendar' || effectivePanel === 'both') && <CalendarPanel />}
 
-        {state.activePanel === 'both' && (
+        {effectivePanel === 'both' && !isMobile && (
           <div style={{ width: 1, background: tokens.colors.border.subtle, flexShrink: 0 }} />
         )}
 
-        {(state.activePanel === 'wbs' || state.activePanel === 'both') && (
+        {(effectivePanel === 'wbs' || effectivePanel === 'both') && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             style={{
-              width: state.activePanel === 'both' ? 440 : '100%',
+              width: effectivePanel === 'both' && !isMobile ? 440 : '100%',
               flexShrink: 0,
               overflow: 'hidden',
               display: 'flex',
@@ -106,10 +129,12 @@ const MainContent: React.FC = () => {
 }
 
 const AppInner: React.FC = () => {
+  const isMobile = useBreakpoint(768)
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', background: tokens.colors.bg.primary, overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100dvh', display: 'flex', background: tokens.colors.bg.primary, overflow: 'hidden' }}>
       <Sidebar />
       <MainContent />
+      {isMobile && <BottomNav />}
       <AIChat />
       <CreateModal />
       <SearchOverlay />

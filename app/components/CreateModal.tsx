@@ -385,6 +385,7 @@ export const CreateModal: React.FC = () => {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={close}
+        className="create-modal-backdrop"
         style={{
           position: 'fixed',
           inset: 0,
@@ -400,15 +401,16 @@ export const CreateModal: React.FC = () => {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={e => e.stopPropagation()}
+          className="create-modal-card"
           style={{
             position: 'relative',
             background: tokens.colors.bg.secondary,
-            borderRadius: 16,
+            borderRadius: 20,
             border: `1px solid ${tokens.colors.border.subtle}`,
             boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
             width: '100%',
             maxWidth: 520,
-            maxHeight: '90vh',
+            maxHeight: '90dvh',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',

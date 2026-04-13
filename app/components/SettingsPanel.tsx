@@ -100,7 +100,7 @@ export const SettingsPanel: React.FC = () => {
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={e => e.stopPropagation()}
           style={{
-            width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto',
+            width: '100%', maxWidth: 480, maxHeight: '90dvh', overflowY: 'auto',
             background: tokens.colors.bg.secondary, borderRadius: 16,
             border: `1px solid ${tokens.colors.border.subtle}`, boxShadow: tokens.shadow.lg,
           }}

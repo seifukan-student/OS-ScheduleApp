@@ -10,6 +10,7 @@ import { useAppState } from '../store/AppContext'
 import { CalendarEvent, WBSTask, WBSProject } from '../types'
 import { tokens } from '../utils/design'
 import { isDueDateOverdue } from '../utils/dueDate'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日']
@@ -206,6 +207,7 @@ export const MonthView: React.FC = () => {
 
 export const WeekView: React.FC = () => {
   const { state, dispatch } = useAppState()
+  const isMobile = useBreakpoint(768)
   const { currentDate, events, projects } = state
   const HOUR_HEIGHT = 60
 
@@ -233,19 +235,26 @@ export const WeekView: React.FC = () => {
   const now = new Date()
   const nowTop = (getHours(now) * 60 + getMinutes(now)) / 60 * HOUR_HEIGHT
 
+  const colWidth = isMobile ? 52 : undefined
+  const gutterW = isMobile ? 40 : 52
+  const minGridW = isMobile ? gutterW + 7 * 52 : undefined
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Horizontal scroll wrapper for mobile */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: isMobile ? 'auto' : 'hidden', overflowY: 'hidden', minWidth: 0 }}>
+      <div style={{ minWidth: minGridW, flex: 1, display: 'flex', flexDirection: 'column', overflow: isMobile ? 'visible' : 'hidden' }}>
       {/* Day headers */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '52px repeat(7, 1fr)',
+        gridTemplateColumns: `${gutterW}px repeat(7, ${colWidth ? colWidth + 'px' : '1fr'})`,
         borderBottom: `1px solid ${tokens.colors.border.subtle}`,
         flexShrink: 0,
       }}>
         <div style={{ borderRight: `1px solid ${tokens.colors.border.subtle}` }} />
         {weekDays.map((day, i) => (
           <div key={day.toISOString()} style={{
-            padding: '10px 0',
+            padding: '8px 0',
             textAlign: 'center',
             borderRight: `1px solid ${tokens.colors.border.subtle}`,
           }}>
@@ -280,7 +289,7 @@ export const WeekView: React.FC = () => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '52px repeat(7, 1fr)',
+          gridTemplateColumns: `${gutterW}px repeat(7, ${colWidth ? colWidth + 'px' : '1fr'})`,
           borderBottom: `1px solid ${tokens.colors.border.subtle}`,
           flexShrink: 0,
           background: tokens.colors.bg.card,
@@ -383,7 +392,7 @@ export const WeekView: React.FC = () => {
 
       {/* Time Grid */}
       <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }} className="custom-scrollbar">
-        <div style={{ display: 'grid', gridTemplateColumns: '52px repeat(7, 1fr)', minHeight: HOUR_HEIGHT * 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `${gutterW}px repeat(7, ${colWidth ? colWidth + 'px' : '1fr'})`, minHeight: HOUR_HEIGHT * 24 }}>
           {/* Hours column */}
           <div style={{ borderRight: `1px solid ${tokens.colors.border.subtle}`, position: 'relative' }}>
             {HOURS.map(hour => (
@@ -506,6 +515,8 @@ export const WeekView: React.FC = () => {
             </div>
           ))}
         </div>
+      </div>
+      </div>
       </div>
     </div>
   )
